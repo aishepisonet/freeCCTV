@@ -8,9 +8,12 @@
   <!-- hls.js for .m3u8 -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-<!-- Include Shaka Player from CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.12/shaka-player.ui.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.12/controls.css">
+  
+  <!-- dash.js for .mpd - Use official CDN -->
+  <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+  
+
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.9.2/shaka-player.compiled.js"></script>
 
   <style>
     /* Reset and base */
@@ -453,18 +456,27 @@ video:focus {
     // Channel List (embedded in script)
     // -------------------------
     const channels = [
-        {
-        name: "A2Z",
+
+      {
+        name: "A2Z HD",
         logo: "https://i.pinimg.com/736x/18/86/a4/1886a48723fc3ac50314ea15ca9be3b2.jpg",
         type: "mpd",
         link: "https://d1uf7s78uqso1e.cloudfront.net/out/v1/efa01372657648be830e7c23ff68bea2/index.mpd",
-        drm: {
-            type: "clearkey",
-            config: {
-                'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530'
-            }
-        }
-    },
+        drmtype: "clearkey",
+        clearkey: {'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530'
+        },
+        isLive: true
+        },
+        {
+        name: "A2Z SD", 
+        logo: "https://i.pinimg.com/736x/18/86/a4/1886a48723fc3ac50314ea15ca9be3b2.jpg",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cg_a2z/default/index.mpd",
+        drmtype: "clearkey",
+        clearkey: {'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530'
+        },
+        isLive: true
+        },
         { 
             name: "AMC Thrillers", 
             logo: "https://i.imgur.com/EVD0aIt.png", 
@@ -476,12 +488,61 @@ video:focus {
         logo: "https://upload.wikimedia.org/wikipedia/commons/b/b4/ANClogo2014.svg",
         type: "mpd",
         link: "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg01006-abs-cbn-anc-global-dash-abscbnono/index.mpd",
-        drm: {
-            type: "clearkey",
-            config: {'4bbdc78024a54662854b412d01fafa16': '6039ec9b213aca913821677a28bd78ae'
-            }
-        }
-    },
+        drmtype: "clearkey",
+        clearkey: {'4bbdc78024a54662854b412d01fafa16': '6039ec9b213aca913821677a28bd78ae'
+        },
+        isLive: true
+        },
+        {
+        name: "Animax", 
+        logo: "https://i.pinimg.com/736x/20/f0/9f/20f09f88d5b2db549ca0c686f2c6323f.jpg",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-01-prod.akamaized.net/bpk-tv/cg_animax_sd_new/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'92032b0e41a543fb9830751273b8debd': '03f8b65e2af785b10d6634735dbe6c11'
+        },
+        isLive: true
+        },
+        {
+        name: "AXN", 
+        logo: "https://divign0fdw3sv.cloudfront.net/Images/ChannelLogo/contenthub/131_144.png",
+        type: "mpd",
+        link: "https://linearjitp-playback.astro.com.my/dash-wv/linear/2303/default_ott.mpd",
+        drmType: "clearkey",
+        clearkey: {'c24a7811d9ab46b48b746a0e7e269210': 'c321afe1689b07d5b7e55bd025c483ce'
+        },
+        isLive: true
+        },
+        {
+        name: "Bilyonaryo News Channel", 
+        logo: "https://static.wikia.nocookie.net/logopedia/images/5/56/Img_1_1756009833117.jpg",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/bilyonaryoch/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'227ffaf09bec4a889e0e0988704d52a2': 'b2d0dce5c486891997c1c92ddaca2cd2'
+        },
+        isLive: true
+        },
+        {
+        name: "BUKO", 
+        logo:"https://i.imgur.com/Wv0K5Yc.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-01-prod.akamaized.net/bpk-tv/cg_buko_sd/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'d273c085f2ab4a248e7bfc375229007d': '7932354c3a84f7fc1b80efa6bcea0615'
+        },
+        isLive: true
+        },
+        {
+        name: "Cartoon Network", 
+        logo: "https://poster.starhubgo.com/Linear_channels2/316_1920x1080_HTV.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cartoonnetworkhd/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'a2d1f552ff9541558b3296b5a932136b': 'cdd48fa884dc0c3a3f85aeebca13d444'
+        },
+        isLive: true
+        },
          {
         name: "Cinema One",
         logo: "https://upload.wikimedia.org/wikipedia/commons/6/66/Cinema_One_logo.png",
@@ -495,8 +556,37 @@ video:focus {
         logo: "https://upload.wikimedia.org/wikipedia/commons/4/41/Cinemologo.png",
         type: "mpd",
         link: "https://d1bail49udbz1k.cloudfront.net/out/v1/3a895f368f4a467c9bca0962559efc19/index.mpd",
-        licenseServer: "http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00",
+        //licenseServer: "http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00",
         isLive: true // Explicitly mark as live
+        },
+        {
+        name: "CNN Philippines", 
+        logo: "https://i.imgur.com/JOg1GGl.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cg_cnnhd/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'900c43f0e02742dd854148b7a75abbec': 'da315cca7f2902b4de23199718ed7e90'
+        },
+        isLive: true
+        },
+        {
+        name: "Disney Channel", 
+        logo: "https://www.hollywoodreporter.com/wp-content/uploads/2014/05/disney_channel_logo_a_l.jpg",
+        type: "mpd",
+        link: "https://ottb.live.cf.ww.aiv-cdn.net/dub-nitro/live/clients/dash/enc/zuf794yutz/out/v1/ca3534bfe4f148298b36719204d108e0/cenc.mpd",
+        clearkey: {'be9caaa813c5305e761c66ac63645901': '3d40f2990ec5362ca5be3a3c9bb8f8b4'
+        },
+        isLive: true
+        },
+        {
+        name: "DreamWorks", 
+        logo: "https://i.imgur.com/cgfKSDP.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cg_dreamworks_hd1/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'4ab9645a2a0a47edbd65e8479c2b9669': '8cb209f1828431ce9b50b593d1f44079'
+        },
+        isLive: true
         },
         { 
         name: "Eat Bulaga TVJ", 
@@ -504,12 +594,40 @@ video:focus {
         type: "youtube", 
         link: "https://www.youtube.com/embed/live_stream?channel=UCby04dl3oIxkDoZil8xP_FA&autoplay=1" 
         },
-         { 
+        {
+        name: "HBO HD", 
+        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/HBO_logo.svg/1920px-HBO_logo.svg.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cg_hbohd/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'d47ebabf7a21430b83a8c4b82d9ef6b1': '54c213b2b5f885f1e0290ee4131d425b'
+        },
+        isLive: true
+        },
+        {
+        name: "Jeepney TV",
+        logo: "https://i.pinimg.com/736x/76/36/ea/7636ea0637bdbc796f54c8b7087c6805.jpg",
+        type: "mpd",
+        link: "https://abslive.akamaized.net/dash/live/2028025/jeepneytv/manifest.mpd",
+        clearkey: {'90ea4079e02f418db7b170e8763e65f0': '1bfe2d166e31d03eee86ee568bd6c272'
+        },
+        isLive: true},
+        { 
         name: "Jungo Pinoy TV", 
         logo: "https://jungopinoy.com/images/logo_11.jpg", 
         type: "m3u8", 
         link: "https://jungotvstream.chanall.tv/jungotv/jungopinoytv/playlist_360p.m3u8",
         isLive: true // Explicitly mark as live
+        },
+        {
+        name: "K+", 
+        logo: "https://i.imgur.com/Nd9gqA2.png",
+        type: "mpd",
+        link: "http://linearjitp-playback.astro.com.my/dash-wv/linear/9983/default_ott.mpd",
+        drmType: "clearkey",
+        clearkey: {'aa48b28bd723f91214887df6ed9fad10': 'b5a3a800848120c843ae0fa68c09c261'
+        },
+        isLive: true
         },
         { 
         name: "Kapamilya Online Live", 
@@ -517,11 +635,31 @@ video:focus {
         type: "youtube", 
         link: "https://www.youtube.com/embed/live_stream?channel=UCstEtN0pgOmCf02EdXsGChw&autoplay=1" 
         },
+        {
+        name: "Kapamilya Movie Channel", 
+        logo: "https://i.pinimg.com/736x/bb/5a/c7/bb5ac7de7e3e772e0e098637fafd121a.jpg",
+        type: "mpd",
+        link: "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg01006-abs-cbn-kapcha-dash-abscbnono/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'bd17afb5dc9648a39be79ee3634dd4b8': '3ecf305d54a7729299b93a3d69c02ea5'
+        },
+        isLive: true
+        },
         { 
         name: "Kapuso Stream", 
         logo: "https://upload.wikimedia.org/wikipedia/commons/6/65/Kapuso_Stream_logo.png", 
         type: "youtube", 
         link: "https://www.youtube.com/embed/live_stream?channel=UCKL5hAuzgFQsyrsQKgU0Qng&autoplay=1" 
+        },
+        {
+        name: "Mediacorp Channel 8", 
+        logo: "https://upload.wikimedia.org/wikipedia/commons/5/55/Mediacorp_Channel_8_2023.svg",
+        type: "mpd",
+        link: "https://tglmp02.akamaized.net/out/v1/423fa206c4ea458ebe83d6edd172eb10/manifest.mpd",
+        drmType: "clearkey",
+        clearkey: {'a4315e7266024dfc9ddb9667727d9635': '485a55859fda05a1e3e8ae1ae63906e8'
+        },
+        isLive: true
         },
         { 
         name: "Miramax Movies", 
@@ -535,6 +673,15 @@ video:focus {
         type: "m3u8", 
         link: "https://moviesphereuk-samsunguk.amagi.tv/playlist.m3u8" 
         },
+        {
+        name: "NBA TV Philippines", 
+        logo: "https://i.pinimg.com/736x/02/44/e3/0244e35a41fd5a4724406f5720fcc69f.jpg",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cgnl_nba/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'c5e51f41ceac48709d0bdcd9c13a4d88': '20b91609967e472c27040716ef6a8b9a'
+        },
+        isLive: true},
         { 
         name: "NEW KPOP", 
         logo: "https://yt3.googleusercontent.com/ytc/AIdro_mvIHQlYealbOtnxSkoFhR5NOnjFiqr7vPRJHsn-dH0P-c=s160-c-k-c0x00ffffff-no-rj", 
@@ -547,6 +694,136 @@ video:focus {
         type: "m3u8", 
         link: "https://7732c5436342497882363a8cd14ceff4.mediatailor.us-east-1.amazonaws.com/v1/master/04fd913bb278d8775298c26fdca9d9841f37601f/Plex_NewMovies/playlist.m3u8",
         isLive: true // Explicitly mark as live 
+        },
+        {
+        name: "ONE", 
+        logo: "https://i.pinimg.com/736x/68/62/cd/6862cd5ce275ab4faaa8630f25f89860.jpg",
+        type: "mpd",
+        link: "http://linearjitp-playback.astro.com.my/dash-wv/linear/2702/default_ott.mpd",
+        drmType: "clearkey",
+        clearkey: {'d8fe398c79065173fa9788f226056510': '45e77e6a8ba767b63cacfdb01ef2ac29'
+        },
+        isLive: true
+        },
+        {
+        name: "ONE Ph", 
+        logo: "https://i.imgur.com/gkluDe9.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/oneph_sd/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'92834ab4a7e1499b90886c5d49220e46:': 'a7108d9a6cfcc1b7939eb111daf09ab3'
+        },
+        isLive: true
+        },
+        {
+        name: "One Sports", 
+        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/One_Sports_logo.svg/2560px-One_Sports_logo.svg.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cg_onesports_hd/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'53c3bf2eba574f639aa21f2d4409ff11': '3de28411cf08a64ea935b9578f6d0edd'
+        },
+        isLive: true
+        },
+        {
+        name: "PBA Rush", 
+        logo: "https://i.imgur.com/F2npB7o.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cg_pbarush_hd1/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'76dc29dd87a244aeab9e8b7c5da1e5f3': '95b2f2ffd4e14073620506213b62ac82'
+        },
+        isLive: true
+        },
+        {
+        name: "RPTV", 
+        logo: "https://i.pinimg.com/736x/1d/a0/d4/1da0d4ae8f1bdf5cfde95122b396263a.jpg",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cnn_rptv_prod_hd/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'1917f4caf2364e6d9b1507326a85ead6': 'a1340a251a5aa63a9b0ea5d9d7f67595'
+        },
+        isLive: true
+        },
+        {
+        name: "SARI SARI", 
+        logo: "https://static.wikia.nocookie.net/russel/images/e/ec/Sari-Sari_Channel_2D_Logo_2016.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cg_sarisari/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'0a7ab3612f434335aa6e895016d8cd2d': 'b21654621230ae21714a5cab52daeb9d'
+        },
+        isLive: true
+        },
+        { 
+        name: "TV 5", 
+        logo: "https://upload.wikimedia.org/wikipedia/commons/4/4f/TV5_%28Philippines%29_logo.svg", 
+        type: "mpd", 
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/tv5_hd/default1/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'2615129ef2c846a9bbd43a641c7303ef': '07c7f996b1734ea288641a68e1cfdc4d'
+        },
+        isLive: true 
+        },
+        {
+        name: "tap SPORTS", 
+        logo: "https://upload.wikimedia.org/wikipedia/en/6/6e/TAP_Sports_channel_logo.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-01-prod.akamaized.net/bpk-tv/dr_tapsports/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'eabd2d95c89e42f2b0b0b40ce4179ea0': '0e7e35a07e2c12822316c0dc4873903f'
+        },
+        isLive: true
+        },
+        {
+        name: "TMC", 
+        logo: "https://i.pinimg.com/736x/c7/bc/0c/c7bc0cdaa2c3e5b02ceb374fa2282cf2.jpg",
+        type: "mpd",
+        link: "https://qp-pldt-live-grp-04-prod.akamaized.net/bpk-tv/u/pbo_sd.mpd",
+        drmType: "clearkey",
+        clearkey: {'dcbdaaa6662d4188bdf97f9f0ca5e830': '31e752b441bd2972f2b98a4b1bc1c7a1'
+        },
+        isLive: true
+        },
+        {
+        name: "TV Maria", 
+        logo: "https://static.wikia.nocookie.net/logopedia/images/c/cd/TV_MARIA_PH.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-01-prod.akamaized.net/bpk-tv/tvmaria_prd/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'fa3998b9a4de40659725ebc5151250d6': '998f1294b122bbf1a96c1ddc0cbb229f'
+        },
+        isLive: true
+        },
+        {
+        name: "tvN", 
+        logo: "https://i.imgur.com/eE9IBhJ.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cg_tvnpre/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'e1bde543e8a140b38d3f84ace746553e': 'b712c4ec307300043333a6899a402c10'
+        },
+        isLive: true
+        },
+        {
+        name: "tvN Movies Pinoy", 
+        logo: "https://static.wikia.nocookie.net/russel/images/e/e3/TvN_Movies_Pinoy_Logo_2023.png",
+        type: "mpd",
+        link: "https://qp-pldt-live-bpk-02-prod.akamaized.net/bpk-tv/cg_tvnmovie/default/index.mpd",
+        drmType: "clearkey",
+        clearkey: {'2e53f8d8a5e94bca8f9a1e16ce67df33': '3471b2464b5c7b033a03bb8307d9fa35'
+        },
+        isLive: true
+        },
+        {
+        name: "Warner TV", 
+        logo: "https://ownassetsmysky.blob.core.windows.net/assetsmysky/production/plans-and-bundles/1599468004_warner-tv.gif",
+        type: "mpd",
+        link: "https://qp-pldt-live-grp-11-prod.akamaized.net/out/u/dr_warnertvhd.mpd",
+        drmType: "clearkey",
+        clearkey: {'4503cf86bca3494ab95a77ed913619a0': 'afc9c8f627fb3fb255dee8e3b0fe1d71'
+        },
+        isLive: true
         }
     ];
 
@@ -561,6 +838,7 @@ video:focus {
 
     // state
     let currentHls = null;
+    let currentDash = null;
     let currentVideo = null;
     let currentShaka = null; // Add Shaka player instance
 
@@ -640,6 +918,165 @@ async function initializeShakaPlayer() {
     }
 }
 
+// ---------------------------
+// Load Stream with Shaka Player (DEBUG VERSION)
+// ---------------------------
+async function loadShakaStream(streamData) {
+    destroyCurrent();
+    showLoader(true);
+
+    try {
+        console.group('🔍 Shaka Player - Loading Stream');
+        
+        if (!window.shaka) {
+            throw new Error('Shaka Player library not loaded');
+        }
+        
+        // Create video element
+        const video = setupVideoElement();
+        videoWrapper.appendChild(video);
+        currentVideo = video;
+
+        // Install polyfills
+        shaka.polyfill.installAll();
+        
+        // Create player
+        const player = new shaka.Player(video);
+        currentShaka = player;
+        
+        // Error handling
+        player.addEventListener('error', (event) => {
+            console.error('Shaka Player error:', event.detail);
+            showLoader(false);
+        });
+
+        // ✅ CORRECT CONFIGURATION - No invalid keys
+        player.configure({
+            streaming: {
+                bufferingGoal: 30,
+                rebufferingGoal: 2,
+                ignoreTextStreamFailures: true,
+                lowLatencyMode: false
+            },
+            manifest: {
+                dash: {
+                    ignoreMinBufferTime: true,
+                    autoCorrectDrift: true,
+                    ignoreEmptyAdaptationSet: true
+                }
+            }
+        });
+
+  // DRM configuration with better error handling
+// DRM configuration with better error handling
+if (streamData.licenseServer) {
+    console.log('🔒 Configuring DRM...');
+    console.log('License server:', streamData.licenseServer);
+    
+    const drmConfig = {
+        servers: {
+            'com.widevine.alpha': streamData.licenseServer
+        },
+        advanced: {
+            'com.widevine.alpha': {
+                videoRobustness: "SW_SECURE_CRYPTO",
+                audioRobustness: "SW_SECURE_CRYPTO"
+            }
+        },
+        // ✅ Add retry configuration
+        retryParameters: {
+            maxAttempts: 3,
+            baseDelay: 1000,
+            backoffFactor: 2,
+            fuzzFactor: 0.5,
+            timeout: 30000
+        }
+    };
+    
+    player.configure({ drm: drmConfig });
+    console.log('✅ DRM configured');
+}
+
+
+// ✅ Enhanced license request handling
+player.getNetworkingEngine().registerRequestFilter((type, request) => {
+    if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
+        console.log('📨 License request details:', {
+            url: request.uris[0],
+            method: request.method,
+            headers: request.headers,
+            body: request.body ? '***ENCRYPTED***' : 'No body'
+        });
+        
+        // Add required headers
+        request.headers = {
+            'Content-Type': 'application/octet-stream',
+            ...request.headers,
+            ...streamData.licenseHeaders
+        };
+        
+        // Log the request for debugging
+        console.log('📋 Final license request headers:', request.headers);
+    }
+});
+
+// ✅ Add response filter to see license server response
+player.getNetworkingEngine().registerResponseFilter((type, response) => {
+    if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
+        console.log('📄 License response:', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+            data: response.data ? '***LICENSE DATA***' : 'No data'
+        });
+        
+        if (response.status !== 200) {
+            console.error('❌ License server returned error:', response.status, response.statusText);
+        }
+    }
+});
+        // License headers
+        if (streamData.licenseHeaders) {
+            player.getNetworkingEngine().registerRequestFilter((type, request) => {
+                if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
+                    Object.assign(request.headers, streamData.licenseHeaders);
+                }
+            });
+        }
+
+        console.log('Loading stream:', streamData.link);
+        // In your loadShakaStream function, after player.load():
+        await player.load(streamData.link);
+        console.log('✅ Stream loaded successfully!');
+
+        // ✅ Add this line to setup custom time display for live streams
+        setupCustomTimeDisplay(video, player);
+
+        showLoader(false);
+        
+        // Try to play
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(err => {
+                console.log('Autoplay prevented:', err);
+                unmuteBtn.style.display = 'block';
+            });
+        }
+        
+        console.groupEnd();
+
+    } catch (error) {
+        console.error('Stream loading failed:', error);
+        showLoader(false);
+        channelName.textContent = `${channelName.textContent} - Error: ${error.message}`;
+        
+        // Fallback to regular DASH
+        if (streamData.link.includes('.mpd')) {
+            loadDash(streamData.link, streamData.license);
+        }
+    }
+}
+
 
 // ---------------------------
 // Enhanced initialize with user interaction handling
@@ -675,150 +1112,101 @@ async function initializeChannels() {
 }
 
 
+// ---------------------------
+// Smart Loader with Network Detection
+// ---------------------------
+async function loadChannelOptimized(channel) {
+    if (!channel || !channel.type) return;
+    
+    channelName.textContent = channel.name;
+    showLoader(true);
+
+    try {
+        // Detect network speed (optional)
+        const networkSpeed = await detectNetworkSpeed();
+        const networkProfile = getOptimizedConfigForSpeed(networkSpeed);
+        
+        console.log(`📊 Using network profile: ${networkSpeed.toFixed(1)}Mbps`);
+
+        if (channel.type === "youtube") {
+            loadYouTube(channel.link);
+        } else if (channel.type === "m3u8") {
+            loadHlsOptimized(channel.link);
+        } else if (channel.type === "mpd") {
+            if (channel.clearkey || channel.licenseServer) {
+                loadStreamOptimizedForSlowNetwork(channel);
+            } else {
+                loadDashOptimized(channel.link);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading channel:', error);
+        channelName.textContent = `${channel.name} - Error: ${error.message}`;
+        showLoader(false);
+    }
+}
 
 
   // ---------------------------
-// ClearKey DRM Support Check
+// Enhanced DRM Support Check
 // ---------------------------
 async function checkDRMSupport() {
-    console.log('ClearKey DRM Support Check:');
+    console.log('DRM Support Check:');
     console.log('MediaSource:', window.MediaSource ? 'Supported' : 'Not Supported');
     console.log('EME (Encrypted Media Extensions):', navigator.requestMediaKeySystemAccess ? 'Supported' : 'Not Supported');
     
     if (navigator.requestMediaKeySystemAccess) {
         // Check ClearKey support WITH robustness levels
-        try {
-            await navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{
-                initDataTypes: ['keyids', 'cenc'],
-                audioCapabilities: [{ 
-                    contentType: 'audio/mp4; codecs="mp4a.40.2"',
-                    robustness: 'SW_SECURE_CRYPTO'
-                }],
-                videoCapabilities: [{ 
-                    contentType: 'video/mp4; codecs="avc1.42E01E"',
-                    robustness: 'SW_SECURE_CRYPTO'
-                }]
-            }]);
-            console.log('✅ ClearKey DRM: Supported');
-            return true;
-        } catch (e) {
-            console.log('❌ ClearKey DRM: Not Supported', e.message);
-            return false;
-        }
-    } else {
-        console.log('❌ EME not supported - ClearKey unavailable');
-        return false;
-    }
-}
-
-// Enhanced version that returns detailed results
-async function checkClearKeySupportDetailed() {
-    const results = {
-        mediaSource: !!window.MediaSource,
-        eme: !!navigator.requestMediaKeySystemAccess,
-        clearKey: false,
-        clearKeyRobustness: false,
-        error: null
-    };
-
-    console.log('🔍 Detailed ClearKey DRM Support Check:');
-    console.log('MediaSource:', results.mediaSource ? '✅ Supported' : '❌ Not Supported');
-    console.log('EME (Encrypted Media Extensions):', results.eme ? '✅ Supported' : '❌ Not Supported');
-
-    if (!results.eme) {
-        console.log('❌ EME not available - ClearKey cannot be used');
-        return results;
-    }
-
-    try {
-        // Test basic ClearKey support
-        await navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{
-            initDataTypes: ['keyids', 'cenc'],
-            audioCapabilities: [{ 
-                contentType: 'audio/mp4; codecs="mp4a.40.2"'
-            }],
-            videoCapabilities: [{ 
-                contentType: 'video/mp4; codecs="avc1.42E01E"'
-            }]
-        }]);
-        results.clearKey = true;
-        console.log('✅ ClearKey DRM: Basic Support - Available');
-    } catch (e) {
-        results.clearKey = false;
-        results.error = e.message;
-        console.log('❌ ClearKey DRM: Basic Support - Not Available', e.message);
-        return results;
-    }
-
-    // Test ClearKey with robustness requirements
-    try {
-        await navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{
+        navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{
             initDataTypes: ['keyids', 'cenc'],
             audioCapabilities: [{ 
                 contentType: 'audio/mp4; codecs="mp4a.40.2"',
-                robustness: 'SW_SECURE_CRYPTO'
+                robustness: 'SW_SECURE_CRYPTO' // Add robustness
             }],
             videoCapabilities: [{ 
                 contentType: 'video/mp4; codecs="avc1.42E01E"',
-                robustness: 'SW_SECURE_CRYPTO'
+                robustness: 'SW_SECURE_CRYPTO' // Add robustness
             }]
-        }]);
-        results.clearKeyRobustness = true;
-        console.log('✅ ClearKey DRM: Robustness Support - Available');
-    } catch (e) {
-        results.clearKeyRobustness = false;
-        console.log('⚠️ ClearKey DRM: Robustness Support - Not Available', e.message);
-    }
+        }]).then(() => {
+            console.log('ClearKey DRM: Supported');
+        }).catch((e) => {
+            console.log('ClearKey DRM: Not Supported', e.message);
+        });
 
-    return results;
-}
+        // Check Widevine support WITH robustness levels
+        navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{
+            initDataTypes: ['cenc'],
+            audioCapabilities: [{ 
+                contentType: 'audio/mp4; codecs="mp4a.40.2"',
+                robustness: 'SW_SECURE_CRYPTO' // Add robustness
+            }],
+            videoCapabilities: [{ 
+                contentType: 'video/mp4; codecs="avc1.42E01E"',
+                robustness: 'SW_SECURE_CRYPTO' // Add robustness
+            }]
+        }]).then(() => {
+            console.log('Widevine DRM: Supported');
+        }).catch((e) => {
+            console.log('Widevine DRM: Not Supported', e.message);
+        });
 
-// Utility function to check if ClearKey content can be played
-async function canPlayClearKeyContent() {
-    const support = await checkClearKeySupportDetailed();
-    
-    if (!support.mediaSource) {
-        return { canPlay: false, reason: 'MediaSource Extensions not supported' };
+        // Also check for hardware security if needed
+        navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{
+            initDataTypes: ['cenc'],
+            audioCapabilities: [{ 
+                contentType: 'audio/mp4; codecs="mp4a.40.2"',
+                robustness: 'HW_SECURE_CRYPTO' // Hardware-level security
+            }],
+            videoCapabilities: [{ 
+                contentType: 'video/mp4; codecs="avc1.42E01E"',
+                robustness: 'HW_SECURE_CRYPTO' // Hardware-level security
+            }]
+        }]).then(() => {
+            console.log('Widevine HW_SECURE_CRYPTO: Supported');
+        }).catch(() => {
+            console.log('Widevine HW_SECURE_CRYPTO: Not Supported');
+        });
     }
-    
-    if (!support.eme) {
-        return { canPlay: false, reason: 'Encrypted Media Extensions not supported' };
-    }
-    
-    if (!support.clearKey) {
-        return { canPlay: false, reason: 'ClearKey DRM not supported' };
-    }
-
-    return { 
-        canPlay: true, 
-        reason: 'ClearKey content can be played',
-        withRobustness: support.clearKeyRobustness
-    };
-}
-
-// Example usage:
-async function initializePlayerWithClearKeyCheck(streamData) {
-    console.log('🚀 Initializing player with ClearKey DRM check...');
-    
-    const canPlay = await canPlayClearKeyContent();
-    
-    if (!canPlay.canPlay) {
-        console.error('❌ Cannot play ClearKey content:', canPlay.reason);
-        // Show user-friendly error message
-        showErrorToUser(`This content requires DRM support: ${canPlay.reason}`);
-        return;
-    }
-    
-    console.log('✅ ClearKey supported, loading content...');
-    
-    if (canPlay.withRobustness) {
-        console.log('🔒 Playing with enhanced security (robustness)');
-    } else {
-        console.log('⚠️ Playing with basic security (no robustness)');
-    }
-    
-    // Proceed to load your ClearKey content
-    initializeShakaPlayer(streamData.link, streamData.clearkey);
 }
 
 //ClearKey Support Check
@@ -862,6 +1250,141 @@ function checkClearKeySupport() {
     console.groupEnd();
 }
 // Run this in console: checkClearKeySupport()
+
+
+async function loadStreamWithSmartDRM(streamData) {
+    destroyCurrent();
+    showLoader(true);
+
+    try {
+        const video = setupVideoElement();
+        videoWrapper.appendChild(video);
+        currentVideo = video;
+
+        shaka.polyfill.installAll();
+        const player = new shaka.Player();
+        await player.attach(video);
+        currentShaka = player;
+
+        // Get DRM support (use cached or detect)
+        const drmSupport = window.drmSupport || await detectDRMSupport();
+        
+        console.log('🎯 Smart DRM Loading with support:', drmSupport);
+        
+        // Configure DRM based on available support and stream requirements
+        const drmConfig = await buildDRMConfig(streamData, drmSupport);
+        
+        if (Object.keys(drmConfig.servers).length > 0 || Object.keys(drmConfig.clearKeys || {}).length > 0) {
+            player.configure({ drm: drmConfig });
+            console.log('🔒 DRM configured:', drmConfig);
+        } else {
+            console.log('ℹ️ No DRM configuration applied - playing without DRM');
+        }
+
+        player.configure({
+        drm: {
+        clearKeys: {
+        'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530',
+        'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530',
+        '4bbdc78024a54662854b412d01fafa16': '6039ec9b213aca913821677a28bd78ae',
+        '92032b0e41a543fb9830751273b8debd': '03f8b65e2af785b10d6634735dbe6c11',
+        'c24a7811d9ab46b48b746a0e7e269210': 'c321afe1689b07d5b7e55bd025c483ce'
+        }
+        }
+    });
+
+
+
+        // Basic player configuration
+        player.configure({
+            streaming: {
+                bufferingGoal: 15,
+                rebufferingGoal: 1.5,
+                bufferBehind: 20,
+                lowLatencyMode: false
+            }
+        });
+
+        // Load the stream
+        await player.load(streamData.link);
+        console.log('✅ Stream loaded successfully');
+        
+        showLoader(false);
+        
+        video.play().catch(err => {
+            console.log('Autoplay prevented:', err);
+            unmuteBtn.style.display = 'block';
+        });
+
+        // Auto-play with better error handling
+        try {
+            await video.play();
+            console.log('▶️ Playback started successfully');
+        } catch (err) {
+            console.log('Autoplay prevented:', err);
+            if (unmuteBtn) unmuteBtn.style.display = 'block';
+            // Show play button overlay for user interaction
+            showPlayButtonOverlay();
+        }
+
+    } catch (error) {
+        console.error('💥 Smart DRM load failed:', error);
+        handleDRMFallback(streamData, error);
+    }
+}
+
+async function loadStream(streamData) {
+    // DRM configuration from service
+    const drmConfig = {
+        servers: {
+            'com.widevine.alpha': streamData.drm.license_server_url
+        },
+        advanced: {
+            'com.widevine.alpha': {
+                videoRobustness: "SW_SECURE_CRYPTO",
+                audioRobustness: "SW_SECURE_CRYPTO"
+            }
+        }
+    };
+
+    // Configure player
+    player.configure({
+        streaming: {
+            abr: {
+                enabled: streamData.adaptive_bitrate || false
+            }
+        },
+        drm: drmConfig
+    });
+
+    // Add license request headers if required
+    player.getNetworkingEngine().registerRequestFilter((type, request) => {
+        if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
+            request.headers = {
+                ...request.headers,
+                ...streamData.drm.headers
+            };
+        }
+    });
+
+    try {
+        await player.load(streamData.manifest_url);
+    } catch (error) {
+        console.error('Stream loading failed:', error);
+    }
+}
+    // Unmute button functionality
+    unmuteBtn.addEventListener('click', function() {
+        if (currentVideo) {
+            currentVideo.muted = false;
+            unmuteBtn.style.display = 'none';
+            currentVideo.play().catch(err => {
+                console.log('Play after unmute failed:', err);
+            });
+        }
+    });
+
+
     // ---------------------------
 // Fixed DRM Support Detection (No Warnings)
 // ---------------------------
@@ -939,363 +1462,35 @@ async function buildDRMConfig(streamData, drmSupport) {
         clearKeys: {}
     };
 
-    // Focus ONLY on ClearKey configuration
-    if (streamData.drmType === 'clearkey' && streamData.clearkey && drmSupport.clearkey) {
-        console.log('🔐 Building ClearKey DRM configuration');
+    // Priority 1: Use specified DRM type if supported
+    if (streamData.drmType === 'widevine' && streamData.licenseServer && drmSupport.widevine) {
+        drmConfig.servers['com.widevine.alpha'] = streamData.licenseServer;
+        drmConfig.advanced['com.widevine.alpha'] = {
+            videoRobustness: "SW_SECURE_CRYPTO", // ✅ Added robustness
+            audioRobustness: "SW_SECURE_CRYPTO"  // ✅ Added robustness
+        };
+    }
+    else if (streamData.drmType === 'clearkey' && streamData.clearkey && drmSupport.clearkey) {
         drmConfig.servers['org.w3.clearkey'] = 'data:application/json;base64,eyJrZXlzIjpbXSwidHlwZSI6InRlbXBvcmFyeSJ9';
         drmConfig.clearKeys = parseClearKeyData(streamData.clearkey);
+        // ClearKey doesn't need robustness levels
     }
-    // Auto-detect ClearKey if available data and support
+    // Priority 2: Auto-detect based on available data and support
+    else if (streamData.licenseServer && drmSupport.widevine) {
+        drmConfig.servers['com.widevine.alpha'] = streamData.licenseServer;
+        drmConfig.advanced['com.widevine.alpha'] = {
+            videoRobustness: "SW_SECURE_CRYPTO", // ✅ Added robustness
+            audioRobustness: "SW_SECURE_CRYPTO"  // ✅ Added robustness
+        };
+    }
     else if (streamData.clearkey && drmSupport.clearkey) {
-        console.log('🔐 Auto-configuring ClearKey DRM');
         drmConfig.servers['org.w3.clearkey'] = 'data:application/json;base64,eyJrZXlzIjpbXSwidHlwZSI6InRlbXBvcmFyeSJ9';
         drmConfig.clearKeys = parseClearKeyData(streamData.clearkey);
-    }
-    // If ClearKey is specified but not supported, log warning
-    else if ((streamData.drmType === 'clearkey' || streamData.clearkey) && !drmSupport.clearkey) {
-        console.warn('⚠️ ClearKey DRM requested but not supported by browser');
     }
 
     return drmConfig;
 }
 
-// Helper function to parse ClearKey data
-function parseClearKeyData(clearkeyData) {
-    const clearKeys = {};
-    
-    if (!clearkeyData) {
-        console.warn('⚠️ No ClearKey data provided');
-        return clearKeys;
-    }
-
-    try {
-        if (typeof clearkeyData === 'string') {
-            // Handle "keyId:keyValue" string format
-            const [keyId, keyValue] = clearkeyData.split(':');
-            if (keyId && keyValue) {
-                clearKeys[keyId] = keyValue;
-                console.log(`✅ Parsed ClearKey: ${keyId} = ${keyValue}`);
-            } else {
-                console.warn('⚠️ Invalid ClearKey string format');
-            }
-        } 
-        else if (typeof clearkeyData === 'object') {
-            // Handle object format { keyId: keyValue }
-            Object.assign(clearKeys, clearkeyData);
-            console.log(`✅ Parsed ${Object.keys(clearkeyData).length} ClearKey(s)`);
-        }
-        
-        console.log('🔑 Final ClearKeys:', clearKeys);
-        return clearKeys;
-        
-    } catch (error) {
-        console.error('❌ Error parsing ClearKey data:', error);
-        return {};
-    }
-}
-
-// Simplified DRM support check for ClearKey only
-async function checkClearKeySupport() {
-    const support = {
-        clearkey: false,
-        error: null
-    };
-
-    if (!navigator.requestMediaKeySystemAccess) {
-        support.error = 'EME not supported';
-        return support;
-    }
-
-    try {
-        await navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{
-            initDataTypes: ['keyids', 'cenc'],
-            audioCapabilities: [{ 
-                contentType: 'audio/mp4; codecs="mp4a.40.2"'
-            }],
-            videoCapabilities: [{ 
-                contentType: 'video/mp4; codecs="avc1.42E01E"'
-            }]
-        }]);
-        support.clearkey = true;
-        console.log('✅ ClearKey DRM: Supported');
-    } catch (error) {
-        support.clearkey = false;
-        support.error = error.message;
-        console.log('❌ ClearKey DRM: Not Supported', error.message);
-    }
-
-    return support;
-}
-
-
-// Add this function to detect connection quality
-function getConnectionAwareConfig() {
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    
-    if (connection) {
-        const downlink = connection.downlink; // in Mbps
-        const effectiveType = connection.effectiveType;
-        
-        console.log(`📊 Connection: ${effectiveType}, ${downlink}Mbps`);
-        
-        if (downlink < 2 || effectiveType === 'slow-2g' || effectiveType === '2g') {
-            return {
-                // Ultra-conservative for very slow connections
-                bandwidthEstimate: 500000,
-                minBandwidth: 200000,
-                maxBandwidth: 1000000,
-                rebufferingGoal: 25,
-                bufferingGoal: 30
-            };
-        } else if (downlink < 5 || effectiveType === '3g') {
-            return {
-                // Conservative for your 3mbps connection
-                bandwidthEstimate: 800000,
-                minBandwidth: 300000,
-                maxBandwidth: 2500000,
-                rebufferingGoal: 20,
-                bufferingGoal: 25
-            };
-        }
-    }
-    
-    // Default conservative settings
-    return {
-        bandwidthEstimate: 1000000,
-        minBandwidth: 500000,
-        maxBandwidth: 3000000,
-        rebufferingGoal: 15,
-        bufferingGoal: 20
-    };
-}
-
-
-// Complete Shaka Player integration with ClearKey-only DRM
-async function loadShakaWithClearKey(channel) {
-    if (!channel) {
-        console.error('❌ Channel data required');
-        return;
-    }
-
-    console.log(`🎬 Loading: ${channel.name}`);
-    destroyCurrent();
-    showLoader(true);
-
-    const video = setupVideoElement();
-    videoWrapper.appendChild(video);
-    currentVideo = video;
-
-    try {
-        const player = new shaka.Player(video);
-        currentPlayer = player;
-
-        // Check ClearKey support and build config
-        const drmSupport = await checkClearKeySupport();
-        const drmConfig = await buildDRMConfig(channel, drmSupport);
-
-        // Enhanced DRM configuration with robustness
-        if (Object.keys(drmConfig.clearKeys).length > 0 && drmSupport.clearkey) {
-            console.log('🔐 Applying ClearKey DRM configuration');
-            
-            // Enhanced DRM configuration with robustness levels
-            player.configure({
-                drm: {
-                    ...drmConfig,
-                    // Advanced DRM settings for robustness
-                    advanced: {
-                        'com.widevine.alpha': {
-                            audioRobustness: 'SW_SECURE_CRYPTO',
-                            videoRobustness: 'SW_SECURE_DECODE'
-                        },
-                        'com.microsoft.playready': {
-                            audioRobustness: '2000',
-                            videoRobustness: '2000'
-                        },
-                        'org.w3.clearkey': {
-                            audioRobustness: 'SW_SECURE_CRYPTO', 
-                            videoRobustness: 'SW_SECURE_CRYPTO'
-                        }
-                    },
-                    // Retry configuration for DRM failures
-                    retryParameters: {
-                        maxAttempts: 5,
-                        baseDelay: 1000,
-                        backoffFactor: 2,
-                        fuzzFactor: 0.5,
-                        timeout: 30000
-                    }
-                }
-            });
-        } else {
-            console.log('ℹ️ Loading without DRM configuration');
-        }
-
-        // Comprehensive player settings for robustness
-        player.configure({
-            streaming: {
-                rebufferingGoal: 20, // Increased for stability
-                bufferingGoal: 25,
-                bufferBehind: 40,
-                lowLatencyMode: false, // Better for stability on slow connections
-                inaccurateManifestTolerance: 2, // Handle manifest issues
-                stallThreshold: 1, // Seconds before considering it a stall
-                useNativeHlsOnSafari: true // Better Safari compatibility
-            },
-            abr: {
-                enabled: true,
-                defaultBandwidthEstimate: 800000, // Lower for 3mbps
-                restrictions: {
-                    minBandwidth: 300000,  // Minimum 300kbps
-                    maxBandwidth: 2500000, // Maximum 2.5mbps for your connection
-                },
-                switchInterval: 8, // Less frequent quality switching
-                bandwidthUpgradeTarget: 0.85,
-                bandwidthDowngradeTarget: 0.9
-            },
-            // Network robustness configuration
-            manifest: {
-                retryParameters: {
-                    maxAttempts: 5,
-                    baseDelay: 1000,
-                    backoffFactor: 2,
-                    fuzzFactor: 0.5,
-                    timeout: 30000
-                },
-                dash: {
-                    ignoreMinBufferTime: false,
-                    autoCorrectDrift: true,
-                    initialSegmentLimit: 10
-                }
-            },
-            // Playback robustness
-            playRangeStart: 0,
-            availabilityWindowOverride: 60
-        });
-
-        // Enhanced event handlers with retry logic
-        let retryCount = 0;
-        const maxRetries = 3;
-
-        player.addEventListener('loaded', () => {
-            console.log(`✅ ${channel.name} loaded successfully`);
-            showLoader(false);
-            retryCount = 0; // Reset retry count on successful load
-        });
-
-        player.addEventListener('error', (event) => {
-            console.error(`❌ Shaka Error:`, event.detail);
-            
-            // Retry on network errors
-            if (event.detail.code === shaka.util.Error.Code.BAD_HTTP_STATUS ||
-                event.detail.code === shaka.util.Error.Code.TIMEOUT ||
-                event.detail.code === shaka.util.Error.Code.REQUEST_FILTER_ERROR) {
-                
-                if (retryCount < maxRetries) {
-                    retryCount++;
-                    console.log(`🔄 Retry attempt ${retryCount}/${maxRetries}`);
-                    setTimeout(() => {
-                        player.load(channel.link).catch(err => {
-                            console.error(`💥 Retry ${retryCount} failed:`, err);
-                        });
-                    }, 2000 * retryCount); // Exponential backoff
-                    return;
-                }
-            }
-            
-            showLoader(false);
-            handleShakaError(channel, event.detail);
-        });
-
-        // Network quality monitoring
-        player.addEventListener('buffering', (event) => {
-            if (event.buffering) {
-                console.log('⏳ Buffering...');
-                showLoader(true);
-            } else {
-                console.log('✅ Buffering ended');
-                showLoader(false);
-            }
-        });
-
-        // Load the stream with timeout protection
-        const loadPromise = player.load(channel.link);
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Load timeout')), 30000);
-        });
-
-        await Promise.race([loadPromise, timeoutPromise]);
-        console.log(`🎯 ${channel.name} ready for playback`);
-
-        // Auto-play with better error handling
-        try {
-            await video.play();
-            console.log('▶️ Playback started successfully');
-        } catch (err) {
-            console.log('Autoplay prevented:', err);
-            if (unmuteBtn) unmuteBtn.style.display = 'block';
-            // Show play button overlay for user interaction
-            showPlayButtonOverlay();
-        }
-
-    } catch (error) {
-        console.error(`💥 Failed to load ${channel.name}:`, error);
-        showLoader(false);
-        channelName.textContent = `${channel.name} - Load Error`;
-        
-        // Final retry attempt
-        if (retryCount < maxRetries) {
-            console.log('🔄 Attempting final retry...');
-            setTimeout(() => loadShakaWithClearKey(channel), 3000);
-        }
-    }
-}
-
-// Helper function to show play button overlay
-function showPlayButtonOverlay() {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0,0,0,0.7);
-        color: white;
-        padding: 20px;
-        border-radius: 10px;
-        cursor: pointer;
-        z-index: 1000;
-    `;
-    overlay.innerHTML = `
-        <div style="text-align: center;">
-            <div style="font-size: 48px; margin-bottom: 10px;">▶️</div>
-            <div>Click to play</div>
-        </div>
-    `;
-    
-    overlay.onclick = () => {
-        if (currentVideo) {
-            currentVideo.play().catch(console.error);
-        }
-        overlay.remove();
-    };
-    
-    videoWrapper.appendChild(overlay);
-}
-
-// Usage with your channel data:
-/*
-const channel = {
-    name: "A2Z HD",
-    type: "mpd",
-    link: "https://example.com/stream.mpd",
-    drmType: "clearkey",
-    clearkey: {
-        'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530'
-    }
-};
-
-loadShakaWithClearKey(channel);
-*/
 
 // ---------------------------
 // Network Speed Detection
@@ -1364,27 +1559,97 @@ function getOptimizedConfigForSpeed(speedMbps) {
     return configs.fast;
 }
 
+function loadShakaStreamWithClearKey(streamData) {
+    destroyCurrent();
+    showLoader(true);
 
+    try {
+        const video = setupVideoElement();
+        videoWrapper.appendChild(video);
+        currentVideo = video;
 
-// Or if you have a channel list
-function setupChannelList() {
-    const channelList = document.getElementById('channel-list');
-    
-    channels.forEach((channel, index) => {
-        const listItem = document.createElement('div');
-        listItem.className = 'channel-item';
-        listItem.innerHTML = `
-            <img src="${channel.logo}" alt="${channel.name}" width="40">
-            <span>${channel.name}</span>
-        `;
-        listItem.addEventListener('click', () => {
-            loadChannel(channel);
+        shaka.polyfill.installAll();
+        
+        // Create player with new method
+        const player = new shaka.Player();
+         player.attach(video);
+        currentShaka = player;
+
+        // ClearKey DRM configuration
+        if (streamData.clearkey) {
+            console.log('🔑 Configuring ClearKey DRM...');
+            
+            const clearkeyConfig = {
+                servers: {
+                    'org.w3.clearkey': 'data:application/json;base64,eyJrZXlzIjpbXSwidHlwZSI6InRlbXBvcmFyeSJ9' // Empty keyset
+                },
+                advanced: {
+                    'org.w3.clearkey': {
+                        // Optional: Add any ClearKey-specific configuration
+                    }
+                },
+                clearKeys: {} // Will be populated with keys
+            };
+
+            // Parse ClearKey data (format: "keyId:keyValue" or array of keys)
+            if (typeof streamData.clearkey === 'string') {
+                // Single key: "keyId:keyValue"
+                const [keyId, keyValue] = streamData.clearkey.split(':');
+                if (keyId && keyValue) {
+                    clearkeyConfig.clearKeys[keyId] = keyValue;
+                }
+            } else if (Array.isArray(streamData.clearkey)) {
+                // Multiple keys: [{keyId: '...', key: '...'}, ...]
+                streamData.clearkey.forEach(keyData => {
+                    if (keyData.keyId && keyData.key) {
+                        clearkeyConfig.clearKeys[keyData.keyId] = keyData.key;
+                    }
+                });
+            } else if (typeof streamData.clearkey === 'object') {
+                // Object format: {keyId1: 'key1', keyId2: 'key2'}
+                clearkeyConfig.clearKeys = { ...streamData.clearkey };
+            }
+
+            console.log('ClearKey keys configured:', Object.keys(clearkeyConfig.clearKeys).length);
+            player.configure({ drm: clearkeyConfig });
+        }
+
+        // Basic configuration
+        player.configure({
+            streaming: {
+                bufferingGoal: 30,
+                rebufferingGoal: 2
+            }
         });
-        channelList.appendChild(listItem);
+
+        player.configure({
+        drm: {
+        clearKeys: {
+        'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530',
+        'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530',
+        '4bbdc78024a54662854b412d01fafa16': '6039ec9b213aca913821677a28bd78ae',
+        '92032b0e41a543fb9830751273b8debd': '03f8b65e2af785b10d6634735dbe6c11',
+        'c24a7811d9ab46b48b746a0e7e269210': 'c321afe1689b07d5b7e55bd025c483ce'
+        }
+        }
     });
+
+        // Load the stream
+         player.load(streamData.link);
+        console.log('✅ Stream loaded with ClearKey DRM');
+        
+        showLoader(false);
+        video.play().catch(err => {
+            console.log('Autoplay prevented:', err);
+            unmuteBtn.style.display = 'block';
+        });
+
+    } catch (error) {
+        console.error('ClearKey DRM failed:', error);
+        showLoader(false);
+        channelName.textContent = `${channelName.textContent} - DRM Error`;
+    }
 }
-
-
 //Updated Custom Time Display (Simplified)
 // ---------------------------
 // Enhanced Live Stream Time Display
@@ -1785,7 +2050,7 @@ function validateChannels(channels) {
     v.setAttribute("playsinline", "true");
     v.controls = true;
     v.autoplay = true;
-    v.muted = false;
+    v.muted = true;
     v.preload = "auto";
     v.style.width = "100%";
     v.style.height = "100%";
@@ -2431,6 +2696,347 @@ function loadHlsOptimized(link) {
         customControls.show();
     });
 }
+
+    function loadDash(link, licenseData = null) {
+    destroyCurrent();
+    showLoader(true);
+
+    const video = setupVideoElement();
+    videoWrapper.appendChild(video);
+    currentVideo = video;
+
+    // Check if MediaSource is supported
+    if (!dashjs.supportsMediaSource()) {
+        console.error("MediaSource not supported");
+        showLoader(false);
+        channelName.textContent = `${channelName.textContent} - MediaSource not supported`;
+        return;
+    }
+
+    try {
+        console.log('🎬 Initializing DASH player...');
+        
+        // ✅ FIXED: Create DASH player with proper error handling
+        const dash = dashjs.MediaPlayer().create();
+        currentDash = dash;
+
+        // ✅ FIXED: Basic configuration first
+        dash.updateSettings({
+            streaming: {
+                delay: {
+                    liveDelay: 4
+                },
+                abr: {
+                    autoSwitchBitrate: {
+                        video: true,
+                        audio: true
+                    }
+                },
+                scheduleWhilePaused: false,
+                fastSwitchEnabled: true
+            },
+            debug: {
+                logLevel: dashjs.Debug.LOG_LEVEL_ERROR // Reduce verbosity
+            }
+        });
+
+        // ✅ FIXED: Safe event registration with null checks
+        const safeOn = (eventType, handler) => {
+            if (!eventType) {
+                console.error('Cannot register event with null/undefined type');
+                return;
+            }
+            try {
+                dash.on(eventType, handler);
+            } catch (error) {
+                console.error(`Failed to register ${eventType} event:`, error);
+            }
+        };
+
+        // ✅ FIXED: Register events safely
+        safeOn(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function() {
+            console.log("DASH: Stream initialized");
+            showLoader(false);
+        });
+
+        safeOn(dashjs.MediaPlayer.events.MANIFEST_LOADED, function(e) {
+            console.log("DASH: Manifest loaded successfully");
+            
+            // Get available bitrates for quality selector
+            setTimeout(() => {
+                try {
+                    const bitrates = dash.getBitrateInfoListFor("video");
+                    if (bitrates && bitrates.length > 1) {
+                        populateDashQualitySelector(dash, bitrates);
+                    } else {
+                        qualitySelector.style.display = "none";
+                    }
+                } catch (e) {
+                    console.warn('Could not get bitrates:', e);
+                }
+            }, 1000);
+        });
+
+        safeOn(dashjs.MediaPlayer.events.PLAYBACK_STARTED, function() {
+            console.log("DASH: Playback started");
+            showLoader(false);
+        });
+
+        safeOn(dashjs.MediaPlayer.events.PLAYBACK_ERROR, function(e) {
+            console.error("DASH: Playback error:", e);
+            showLoader(false);
+        });
+
+        safeOn(dashjs.MediaPlayer.events.ERROR, function(e) {
+            console.error("DASH: Player error:", e);
+            showLoader(false);
+        });
+
+        // ✅ FIXED: Set up DRM only if license data is provided and valid
+        if (licenseData && licenseData.type === "clearkey") {
+            try {
+                const [keyId, keyValue] = licenseData.key.split(':');
+                if (keyId && keyValue) {
+                    const protectionData = {
+                        "org.w3.clearkey": {
+                            "clearkeys": {
+                                [keyId]: keyValue
+                            }
+                        }
+                    };
+                    dash.setProtectionData(protectionData);
+                    console.log('DASH: DRM configured with ClearKey');
+                }
+            } catch (drmError) {
+                console.error('DASH: DRM setup error:', drmError);
+            }
+        }
+
+        // ✅ FIXED: Initialize with error handling
+        console.log("DASH: Initializing player with URL:", link);
+        dash.initialize(video, link, true);
+
+        // Handle video events
+        // In loadDash function:
+video.addEventListener('loadedmetadata', () => {
+    showLoader(false);
+    handleAutoplayRestrictions(video); // ✅ Use enhanced handler
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(err => {
+                    console.log('DASH: Autoplay prevented:', err);
+                    unmuteBtn.style.display = 'block';
+                });
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Failed to initialize DASH player:', error);
+        channelName.textContent = `${channelName.textContent} - DASH Error`;
+        showLoader(false);
+        
+        // Final fallback: try HLS if DASH fails
+        const hlsLink = link.replace('.mpd', '.m3u8');
+        if (hlsLink !== link) {
+            console.log("DASH: Trying HLS fallback...");
+            loadHls(hlsLink);
+        }
+    }
+
+    // ---------------------------
+// Optimized DASH for Slow Networks
+// ---------------------------
+function loadDashOptimized(link, licenseData = null) {
+    destroyCurrent();
+    showLoader(true);
+
+    const video = setupVideoElement();
+    videoWrapper.appendChild(video);
+    currentVideo = video;
+
+    // Add class for custom controls
+    video.classList.add('video-with-custom-controls');
+
+    try {
+        const dash = dashjs.MediaPlayer().create();
+        currentDash = dash;
+
+        dash.updateSettings({
+            streaming: {
+                delay: { 
+                    liveDelay: 6,
+                    liveCatchUp: 0.1 // Slower catch-up for stability
+                },
+                buffer: {
+                    bufferTimeAtTopQuality: 15,
+                    bufferAheadToKeep: 15,
+                    bufferBehindToKeep: 5
+                },
+                abr: {
+                    autoSwitchBitrate: { video: true, audio: true },
+                    initialBitrate: { video: 500000 },
+                    maxBitrate: { video: 2500000 },
+                    maxRepresentationRatio: { video: 1 }
+                },
+                scheduleWhilePaused: false,
+                fastSwitchEnabled: true,
+                lowLatencyMode: false // Better for stability
+            }
+        });
+
+        // ✅ ENHANCED DASH EVENTS FOR CONTROLS
+        dash.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, function(e) {
+            console.log("DASH: Manifest loaded");
+            
+            // ✅ SHOW CONTROLS
+            customControls.show();
+            
+            // ✅ DETECT LIVE STREAM
+            const isLive = dash.isDynamic();
+            customControls.setLiveIndicator(isLive);
+            
+            console.log(`📊 DASH Stream Info: Live=${isLive}, Duration=${dash.duration()}`);
+            
+            showLoader(false);
+        });
+
+        dash.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function() {
+            console.log("DASH: Stream initialized");
+        });
+
+        // ✅ UPDATE LIVE DELAY FOR DASH LIVE STREAMS
+        let liveUpdateInterval;
+        dash.on(dashjs.MediaPlayer.events.PLAYBACK_STARTED, function() {
+            console.log("DASH: Playback started");
+            
+            if (dash.isDynamic()) {
+                // Start updating live delay periodically
+                liveUpdateInterval = setInterval(() => {
+                    try {
+                        const liveDelay = dash.getTargetLiveDelay();
+                        const currentTime = dash.time();
+                        const duration = dash.duration();
+                        
+                        customControls.updateLiveDelay(liveDelay);
+                        
+                        // Log live stream info for debugging
+                        if (Math.random() < 0.01) { // Log occasionally to avoid spam
+                            console.log(`📊 Live Stats: Delay=${liveDelay.toFixed(1)}s, Time=${currentTime.toFixed(1)}`);
+                        }
+                    } catch (error) {
+                        console.log('Error updating live delay:', error);
+                    }
+                }, 1000); // Update every second
+            }
+        });
+
+        // ✅ HANDLE PLAYBACK ERRORS
+        dash.on(dashjs.MediaPlayer.events.ERROR, function(e) {
+            console.error("DASH: Player error", e);
+            if (e.error && e.error.code === dashjs.MediaPlayer.errors.MANIFEST_LOADER_LOADING_FAILURE_ERROR) {
+                console.log("DASH: Manifest loading failed");
+            }
+        });
+
+        dash.on(dashjs.MediaPlayer.events.PLAYBACK_ERROR, function(e) {
+            console.error("DASH: Playback error", e);
+        });
+
+        // ✅ HANDLE QUALITY CHANGES
+        dash.on(dashjs.MediaPlayer.events.QUALITY_CHANGE_REQUESTED, function(e) {
+            console.log(`🎯 DASH: Quality change to ${e.mediaType} bitrate ${Math.round(e.newQuality/1000)}kbps`);
+        });
+
+        // ✅ CLEAN UP ON PLAYBACK ENDED
+        dash.on(dashjs.MediaPlayer.events.PLAYBACK_ENDED, function() {
+            console.log("DASH: Playback ended");
+            if (liveUpdateInterval) {
+                clearInterval(liveUpdateInterval);
+            }
+        });
+
+        // ✅ INITIALIZE DASH PLAYER
+        console.log("🎬 Initializing DASH player...");
+        dash.initialize(video, link, false); // Don't autoplay initially
+        
+        // ✅ ADD VIDEO EVENT LISTENERS FOR CONTROLS
+        video.addEventListener('loadeddata', () => {
+            console.log("DASH: Video data loaded");
+            
+            // Try to play after a short delay
+            setTimeout(() => {
+                video.play().catch(err => {
+                    console.log('DASH autoplay prevented:', err);
+                });
+            }, 500);
+        });
+
+        video.addEventListener('play', () => {
+            customControls.show();
+        });
+
+        video.addEventListener('pause', () => {
+            customControls.show();
+        });
+
+        video.addEventListener('ended', () => {
+            customControls.show();
+            if (liveUpdateInterval) {
+                clearInterval(liveUpdateInterval);
+            }
+        });
+
+        video.addEventListener('waiting', () => {
+            console.log("DASH: Video waiting/buffering");
+        });
+
+        video.addEventListener('playing', () => {
+            console.log("DASH: Video playing");
+        });
+
+        // ✅ ADD KEYBOARD SHORTCUTS FOR DASH PLAYER
+        video.addEventListener('keydown', (e) => {
+            // F key for fullscreen
+            if (e.key === 'f' || e.key === 'F') {
+                e.preventDefault();
+                customControls.toggleFullscreen();
+            }
+            
+            // Space for play/pause
+            if (e.key === ' ') {
+                e.preventDefault();
+                if (video.paused) {
+                    video.play();
+                } else {
+                    video.pause();
+                }
+            }
+        });
+
+        // Make video focusable for keyboard controls
+        video.setAttribute('tabindex', '0');
+
+    } catch (error) {
+        console.error('❌ DASH initialization failed:', error);
+        showLoader(false);
+        channelName.textContent = `${channelName.textContent} - DASH Error`;
+        
+        // ✅ FALLBACK TO OTHER PLAYERS
+        setTimeout(() => {
+            console.log("🔄 Trying fallback after DASH failure...");
+            const fallbackData = { 
+                name: channelName.textContent, 
+                type: "mpd", 
+                link: link 
+            };
+            handleStreamErrorFallback(fallbackData, error.message);
+        }, 1000);
+        }
+    }
+}
+
+
+
     // ---------------------------
     // Quality selector helpers
     // ---------------------------
@@ -2460,6 +3066,39 @@ function loadHlsOptimized(link) {
             }
         };
     }
+
+    function populateDashQualitySelector(dash, bitrates) {
+        qualitySelector.innerHTML = "";
+        const autoOption = document.createElement("option");
+        autoOption.value = "auto";
+        autoOption.textContent = "Auto";
+        qualitySelector.appendChild(autoOption);
+
+        bitrates.forEach((bitrate, i) => {
+            const opt = document.createElement("option");
+            opt.value = i;
+            const height = bitrate.height || 'Unknown';
+            const bitrateText = bitrate.bitrate ? ` (${Math.round(bitrate.bitrate/1000)}kbps)` : '';
+            opt.textContent = `${height}p${bitrateText}`;
+            qualitySelector.appendChild(opt);
+        });
+
+        qualitySelector.style.display = "inline-block";
+
+        qualitySelector.onchange = function () {
+            try {
+                if (this.value === "auto") {
+                    dash.setQualityFor("video", -1);
+                } else {
+                    dash.setQualityFor("video", parseInt(this.value));
+                }
+            } catch (e) {
+                console.warn('Could not change quality:', e);
+            }
+        };
+    }
+
+
     // ---------------------------
 // User Quality Selection
 // ---------------------------
@@ -2536,9 +3175,9 @@ function loadChannel(channel) {
         } else if (channel.type === "m3u8") {
             loadHls(channel.link);
         } else if (channel.type === "mpd") {
-            // Use the new Shaka Player with ClearKey
-            console.log(`Loading MPD with Shaka ClearKey: ${channel.name}`);
-            loadShakaWithClearKey(channel);
+            // Use smart DRM loader for MPD files
+            console.log(`Loading MPD with smart DRM: ${channel.name}`);
+            loadStreamWithSmartDRM(channel);
         } else {
             throw new Error(`Unsupported stream type: ${channel.type}`);
         }
@@ -2546,10 +3185,36 @@ function loadChannel(channel) {
         console.error('Error loading channel:', error);
         channelName.textContent = `${channel.name} - Error: ${error.message}`;
         showLoader(false);
+    
+    channelName.textContent = `${channelName.textContent} - Shaka Error`;
+    
+    // ✅ IMPROVED: Better fallback logic
+    if (streamData.link.includes('.mpd')) {
+        console.log('🔄 Falling back to DASH.js...');
+        
+        // Create a clean stream data object for DASH fallback
+        const dashStream = {
+            link: streamData.link,
+            license: streamData.license || null
+        };
+        
+        // Use setTimeout to avoid call stack issues
+        setTimeout(() => {
+            try {
+                loadDash(dashStream.link, dashStream.license);
+            } catch (dashError) {
+                console.error('DASH fallback also failed:', dashError);
+                // Final fallback to HLS
+                const hlsLink = streamData.link.replace('.mpd', '.m3u8');
+                if (hlsLink !== streamData.link) {
+                    console.log('🔄 Trying HLS fallback...');
+                    loadHls(hlsLink);
+                }
+            }
+        }, 100);
     }
 }
-
-
+}
 
 
 // Helper function to format ClearKey keys
@@ -2580,6 +3245,78 @@ function formatClearKeyKeys(keys) {
    // },
   //  clearKeys: formatClearKeyKeys(channel.clearkey)
 //};
+
+
+function loadDashWithClearKey(link, clearkeyData) {
+    destroyCurrent();
+    showLoader(true);
+
+    const video = setupVideoElement();
+    videoWrapper.appendChild(video);
+    currentVideo = video;
+
+    try {
+        const dash = dashjs.MediaPlayer().create();
+        currentDash = dash;
+
+        // Configure ClearKey for DASH.js
+        if (clearkeyData) {
+            const protectionData = {
+                "org.w3.clearkey": {
+                    "clearkeys": {}
+                }
+            };
+
+            // Parse ClearKey data
+            if (typeof clearkeyData === 'string') {
+                const [keyId, keyValue] = clearkeyData.split(':');
+                if (keyId && keyValue) {
+                    protectionData["org.w3.clearkey"].clearkeys[keyId] = keyValue;
+                }
+            } else if (typeof clearkeyData === 'object') {
+                protectionData["org.w3.clearkey"].clearkeys = { ...clearkeyData };
+            }
+
+            console.log('DASH.js ClearKey configuration:', protectionData);
+            dash.setProtectionData(protectionData);
+        }
+
+        // Basic configuration
+        dash.updateSettings({
+            streaming: {
+                fastSwitchEnabled: true,
+                abr: { autoSwitchBitrate: true }
+            }
+        });
+
+        // Event handlers
+        dash.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, () => {
+            console.log("DASH: Manifest loaded with ClearKey");
+            showLoader(false);
+        });
+
+        dash.on(dashjs.MediaPlayer.events.ERROR, (e) => {
+            console.error("DASH: Error:", e);
+            showLoader(false);
+        });
+
+        // Initialize
+        dash.initialize(video, link, false);
+        
+        video.addEventListener('loadeddata', () => {
+            video.play().catch(err => {
+                console.log('Autoplay prevented:', err);
+                unmuteBtn.style.display = 'block';
+            });
+        });
+
+    } catch (error) {
+        console.error('DASH with ClearKey failed:', error);
+        showLoader(false);
+        channelName.textContent = `${channelName.textContent} - DRM Error`;
+    }
+}
+
 
 // ---------------------------
 // Optimized for 3Mbps Network
@@ -2640,7 +3377,7 @@ function loadStreamOptimizedForSlowNetwork(streamData) {
             
             // 🎯 Manifest configuration
             manifest: {
-                shaka: {
+                dash: {
                     ignoreMinBufferTime: true,
                     autoCorrectDrift: true,
                     enableForcedSubtitles: false, // Disable to save bandwidth
@@ -2657,20 +3394,9 @@ function loadStreamOptimizedForSlowNetwork(streamData) {
             }
         });
 
-        // Apply CORS proxy if needed
-        player.getNetworkingEngine().registerRequestFilter((type, request) => {
-            if ((type === shaka.net.NetworkingEngine.RequestType.SEGMENT || 
-                 type === shaka.net.NetworkingEngine.RequestType.MANIFEST) &&
-                request.uris[0].includes('cloudfront.net')) {
-                
-                const originalUrl = request.uris[0];
-                const proxiedUrl = getCORSProxyURL(originalUrl);
-                request.uris = [proxiedUrl];
-            }
-        });
 
         // Load the stream
-         player.load(`/proxy/${encodeURIComponent(channel.url)}`)
+         player.load(streamData.link);
         
         // 🎪 Force lower quality initially
         setTimeout(() => {
@@ -2707,6 +3433,31 @@ function loadStreamOptimizedForSlowNetwork(streamData) {
         channelName.textContent = `${channelName.textContent} - Load Error`;
     }
 }
+
+
+function testClearKeyDRM() {
+    console.group('🧪 Testing ClearKey DRM');
+    
+    // Test with a known ClearKey encrypted stream
+    // Note: You'll need an actual ClearKey-encrypted stream for this to work
+    const testStream = {
+        name: "TEST: ClearKey DRM",
+        type: "mpd",
+        link: "https://example.com/clearkey-encrypted-stream.mpd", // Replace with actual URL
+        clearkey: "12345678123456781234567812345678:abcdef0123456789abcdef0123456789"
+    };
+    
+    console.log('Testing ClearKey DRM support...');
+    checkClearKeySupport();
+    
+    console.log('Loading ClearKey protected stream...');
+    loadShakaStreamWithClearKey(testStream);
+    
+    console.groupEnd();
+}
+
+// Run this in console: testClearKeyDRM()
+
 
 function checkAllDRMSupport() {
     console.group('🔒 DRM Support Overview');
@@ -2808,7 +3559,25 @@ function checkEnhancedDRMSupport() {
     ];
     
     // Test Widevine Software
-   
+    navigator.requestMediaKeySystemAccess('com.widevine.alpha', widevineSwConfig)
+        .then(() => {
+            support.widevine = true;
+            console.log('✅ Widevine SW_SECURE_CRYPTO: Supported');
+        })
+        .catch((e) => {
+            console.log('❌ Widevine SW_SECURE_CRYPTO: Not Supported -', e.message);
+        });
+    
+    // Test Widevine Hardware
+    navigator.requestMediaKeySystemAccess('com.widevine.alpha', widevineHwConfig)
+        .then(() => {
+            support.widevineHw = true;
+            console.log('✅ Widevine HW_SECURE_CRYPTO: Supported');
+        })
+        .catch((e) => {
+            console.log('❌ Widevine HW_SECURE_CRYPTO: Not Supported -', e.message);
+        });
+    
     // Test ClearKey with multiple configurations
     let clearkeyTested = 0;
     const testClearKey = (config, index) => {
@@ -2832,7 +3601,18 @@ function checkEnhancedDRMSupport() {
     });
     
     // Test PlayReady
-
+    navigator.requestMediaKeySystemAccess('com.microsoft.playready', [{
+        initDataTypes: ['cenc'],
+        audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }],
+        videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }]
+    }])
+    .then(() => {
+        support.playready = true;
+        console.log('✅ PlayReady: Supported');
+    })
+    .catch((e) => {
+        console.log('❌ PlayReady: Not Supported -', e.message);
+    });
     
     setTimeout(() => {
         console.log('📊 Final DRM Support Summary:', support);
@@ -2844,6 +3624,38 @@ function checkEnhancedDRMSupport() {
 }
 
 // Run this in console: checkEnhancedDRMSupport()
+
+function checkDashJSVersion() {
+    console.group('🔍 DASH.js Version Check');
+    
+    if (typeof dashjs === 'undefined') {
+        console.error('❌ DASH.js not loaded');
+        console.groupEnd();
+        return;
+    }
+    
+    console.log('✅ DASH.js version:', dashjs.Version || 'Unknown');
+    console.log('✅ MediaSource supported:', dashjs.supportsMediaSource());
+    console.log('✅ Events object:', dashjs.MediaPlayer.events);
+    
+    // Check if events are properly defined
+    const essentialEvents = [
+        'MANIFEST_LOADED',
+        'PLAYBACK_ERROR', 
+        'ERROR',
+        'STREAM_INITIALIZED'
+    ];
+    
+    essentialEvents.forEach(eventName => {
+        const eventValue = dashjs.MediaPlayer.events[eventName];
+        console.log(`Event ${eventName}:`, eventValue ? '✅ Defined' : '❌ Undefined');
+    });
+    
+    console.groupEnd();
+}
+
+// Run this in console: checkDashJSVersion()
+
 
 function parseClearKeyData(clearkeyData) {
     if (typeof clearkeyData === 'string') {
@@ -2927,8 +3739,8 @@ function handleDRMFallback(streamData, error) {
             setTimeout(() => loadDash(fallbackData.link), 500);
         } else {
             // Other error - try DASH.js
-            console.log('🔄 Falling back to shaka.js...');
-            loadShakaWithClearKey(streamData.link, streamData.clearkey);
+            console.log('🔄 Falling back to DASH.js...');
+            loadDash(streamData.link, streamData.clearkey);
         }
     } else {
         channelName.textContent = `${channelName.textContent} - Playback Failed`;
@@ -2941,6 +3753,7 @@ function handleDRMFallback(streamData, error) {
 // ---------------------------
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Page loaded, initializing player...');
+    console.log('DashJS available:', typeof dashjs !== 'undefined');
     console.log('HLS.js available:', typeof Hls !== 'undefined');
     console.log('Shaka Player available:', typeof shaka !== 'undefined');
     
@@ -2995,10 +3808,9 @@ function checkCodecSupport() {
     
     console.groupEnd();
 }
+
 // Call this in your DOMContentLoaded
 checkCodecSupport();
-
-
 
 // Keep all your existing functions (loadHls, loadDash, loadYouTube, etc.) as they are
 // Only the functions above need to be added/modified
