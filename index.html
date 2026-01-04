@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,11 +10,13 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
   
-  <!-- dash.js for .mpd - Use official CDN -->
-  <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
-  
+<!-- Use a specific version instead of 'latest' -->
+<script src="https://cdn.dashjs.org/v4.7.4/dash.all.min.js"></script>
 
- <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.9.2/shaka-player.compiled.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.4/dash.all.min.js"></script>
+
+
+ <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.16.12/dist/shaka-player.compiled.min.js"></script>
 
   <style>
     /* Reset and base */
@@ -692,8 +695,7 @@ video:focus {
         name: "K-MOVIES", 
         logo: "https://media.licdn.com/dms/image/D560BAQFjqVBarD-JvA/company-logo_200_200/0/1680758557654?e=2147483647&v=beta&t=jZcFPhVwDPwdz9xM8ZNN-1-ZyUE8AP2jO9cHxvKYAeY", 
         type: "m3u8", 
-        link: "https://7732c5436342497882363a8cd14ceff4.mediatailor.us-east-1.amazonaws.com/v1/master/04fd913bb278d8775298c26fdca9d9841f37601f/Plex_NewMovies/playlist.m3u8",
-        isLive: true // Explicitly mark as live 
+        link: "https://7732c5436342497882363a8cd14ceff4.mediatailor.us-east-1.amazonaws.com/v1/master/04fd913bb278d8775298c26fdca9d9841f37601f/Plex_NewMovies/playlist.m3u8"
         },
         {
         name: "ONE", 
@@ -2698,6 +2700,15 @@ function loadHlsOptimized(link) {
 }
 
     function loadDash(link, licenseData = null) {
+
+    // ✅ CORS proxy helper for CloudFront streams
+    function getCorsProxiedUrl(url) {
+        if (url.includes('cloudfront.net')) {
+            console.log('⚠️ CloudFront URL detected, using CORS proxy');
+            return 'https://corsproxy.io/?' + encodeURIComponent(url);
+        }
+        return url;
+    }
     destroyCurrent();
     showLoader(true);
 
@@ -2740,6 +2751,11 @@ function loadHlsOptimized(link) {
             }
         });
 
+        // When you initialize:
+         const proxiedLink = getCorsProxiedUrl(link);
+         console.log("DASH: Initializing player with URL:", proxiedLink);
+         dash.initialize(video, proxiedLink, true);
+
         // ✅ FIXED: Safe event registration with null checks
         const safeOn = (eventType, handler) => {
             if (!eventType) {
@@ -2755,42 +2771,61 @@ function loadHlsOptimized(link) {
 
         // ✅ FIXED: Register events safely
         safeOn(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function() {
-            console.log("DASH: Stream initialized");
-            showLoader(false);
-        });
+    console.log("DASH: Stream initialized");
+    showLoader(false);
+    
+    // ✅ FIXED: Get bitrates after stream is initialized
+    try {
+        const bitrates = dash.getBitrateInfoListFor("video");
+        if (bitrates && bitrates.length > 1) {
+            populateDashQualitySelector(dash, bitrates);
+        } else {
+            qualitySelector.style.display = "none";
+        }
+    } catch (error) {
+        console.warn('Could not get bitrates:', error);
+        qualitySelector.style.display = "none";
+    }
 
-        safeOn(dashjs.MediaPlayer.events.MANIFEST_LOADED, function(e) {
-            console.log("DASH: Manifest loaded successfully");
-            
-            // Get available bitrates for quality selector
-            setTimeout(() => {
-                try {
-                    const bitrates = dash.getBitrateInfoListFor("video");
-                    if (bitrates && bitrates.length > 1) {
-                        populateDashQualitySelector(dash, bitrates);
-                    } else {
-                        qualitySelector.style.display = "none";
-                    }
-                } catch (e) {
-                    console.warn('Could not get bitrates:', e);
-                }
-            }, 1000);
-        });
+    safeOn(dashjs.MediaPlayer.events.ERROR, function(e) {
+    console.error("DASH: Player error:", e);
+    
+    // Check if it's a CORS or network error but stream might still work
+    if (e.error === "download" && e.event?.request?.status === 200) {
+        console.log("DASH: Got 200 OK despite error, attempting to continue...");
+        // Don't show loader, let it try to continue
+        return;
+    }
+
+    
+    showLoader(false);
+});
+});
+
 
         safeOn(dashjs.MediaPlayer.events.PLAYBACK_STARTED, function() {
             console.log("DASH: Playback started");
             showLoader(false);
         });
 
-        safeOn(dashjs.MediaPlayer.events.PLAYBACK_ERROR, function(e) {
-            console.error("DASH: Playback error:", e);
-            showLoader(false);
-        });
-
-        safeOn(dashjs.MediaPlayer.events.ERROR, function(e) {
-            console.error("DASH: Player error:", e);
-            showLoader(false);
-        });
+    safeOn(dashjs.MediaPlayer.events.ERROR, function(e) {
+    console.error("DASH: Player error:", e);
+    
+    // Don't immediately stop on download errors - try to recover
+    if (e.error && e.error.code === dashjs.MediaPlayer.errors.DOWNLOAD_ERROR_ID_MANIFEST_CODE) {
+        console.log("DASH: Manifest download error, attempting recovery...");
+        return; // Let retries handle it
+    }
+    
+    // For segment errors, also try to recover
+    if (e.error && (e.error.code === dashjs.MediaPlayer.errors.DOWNLOAD_ERROR_ID_SEGMENTS_CODE ||
+                    e.error.code === dashjs.MediaPlayer.errors.DOWNLOAD_ERROR_ID_XLINK_CODE)) {
+        console.log("DASH: Segment download error, attempting recovery...");
+        return; // Let retries handle it
+    }
+    
+    showLoader(false);
+});
 
         // ✅ FIXED: Set up DRM only if license data is provided and valid
         if (licenseData && licenseData.type === "clearkey") {
@@ -2815,6 +2850,62 @@ function loadHlsOptimized(link) {
         // ✅ FIXED: Initialize with error handling
         console.log("DASH: Initializing player with URL:", link);
         dash.initialize(video, link, true);
+
+// Helper function to setup quality selector
+let qualitySelectorSetup = false;
+
+const setupQualitySelector = () => {
+    if (qualitySelectorSetup) return;
+    
+    try {
+        // Verify dash player is ready
+        if (!dash) {
+            console.warn('DASH player not available');
+            return;
+        }
+        
+        // Check if method exists
+        if (typeof dash.getBitrateInfoListFor !== 'function') {
+            console.warn('getBitrateInfoListFor method not available');
+            qualitySelector.style.display = "none";
+            return;
+        }
+        
+        const bitrates = dash.getBitrateInfoListFor("video");
+        
+        if (bitrates && bitrates.length > 1) {
+            populateDashQualitySelector(dash, bitrates);
+            qualitySelectorSetup = true;
+            console.log('DASH: Quality selector populated with', bitrates.length, 'options');
+        } else {
+            console.log('DASH: Only one bitrate available');
+            qualitySelector.style.display = "none";
+        }
+    } catch (error) {
+        console.warn('Could not get bitrates:', error);
+        qualitySelector.style.display = "none";
+    }
+};
+
+// ✅ Keep MANIFEST_LOADED but only for logging
+safeOn(dashjs.MediaPlayer.events.MANIFEST_LOADED, function(e) {
+    console.log("DASH: Manifest loaded successfully");
+    // Don't setup quality selector here - too early!
+});
+
+// ✅ Setup quality selector on STREAM_INITIALIZED
+safeOn(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function() {
+    console.log("DASH: Stream initialized");
+    showLoader(false);
+    setTimeout(setupQualitySelector, 300); // Small delay to ensure bitrates are ready
+});
+
+// ✅ Also try on PLAYBACK_STARTED as backup
+safeOn(dashjs.MediaPlayer.events.PLAYBACK_STARTED, function() {
+    console.log("DASH: Playback started");
+    showLoader(false);
+    setupQualitySelector(); // Try again if it didn't work earlier
+});
 
         // Handle video events
         // In loadDash function:
@@ -2843,6 +2934,46 @@ video.addEventListener('loadedmetadata', () => {
         }
     }
 
+
+    // Add after other event handlers
+safeOn(dashjs.MediaPlayer.events.BUFFER_EMPTY, function(e) {
+    console.warn("DASH: Buffer empty for", e.mediaType);
+    showLoader(true);
+});
+
+safeOn(dashjs.MediaPlayer.events.BUFFER_LOADED, function(e) {
+    console.log("DASH: Buffer loaded for", e.mediaType);
+    showLoader(false);
+});
+
+// Detect playback stalls
+let stallTimeout;
+video.addEventListener('waiting', () => {
+    console.warn("DASH: Video waiting/stalled");
+    showLoader(true);
+    
+    // If stalled for more than 10 seconds, try to recover
+    stallTimeout = setTimeout(() => {
+        console.error("DASH: Stalled for 10s, attempting recovery...");
+        if (currentDash) {
+            try {
+                const currentTime = video.currentTime;
+                currentDash.reset();
+                currentDash.attachSource(link);
+                video.currentTime = currentTime;
+            } catch (err) {
+                console.error("DASH: Recovery failed:", err);
+            }
+        }
+    }, 10000);
+});
+
+video.addEventListener('playing', () => {
+    console.log("DASH: Video playing");
+    clearTimeout(stallTimeout);
+    showLoader(false);
+});
+
     // ---------------------------
 // Optimized DASH for Slow Networks
 // ---------------------------
@@ -2862,27 +2993,52 @@ function loadDashOptimized(link, licenseData = null) {
         currentDash = dash;
 
         dash.updateSettings({
-            streaming: {
-                delay: { 
-                    liveDelay: 6,
-                    liveCatchUp: 0.1 // Slower catch-up for stability
-                },
-                buffer: {
-                    bufferTimeAtTopQuality: 15,
-                    bufferAheadToKeep: 15,
-                    bufferBehindToKeep: 5
-                },
-                abr: {
-                    autoSwitchBitrate: { video: true, audio: true },
-                    initialBitrate: { video: 500000 },
-                    maxBitrate: { video: 2500000 },
-                    maxRepresentationRatio: { video: 1 }
-                },
-                scheduleWhilePaused: false,
-                fastSwitchEnabled: true,
-                lowLatencyMode: false // Better for stability
-            }
-        });
+    streaming: {
+        delay: { 
+            liveDelay: 8, // Increase delay for more buffer
+            liveCatchUp: 0.05 // Slower catch-up
+        },
+        buffer: {
+            bufferTimeAtTopQuality: 20, // Increase buffer
+            bufferAheadToKeep: 20,
+            bufferBehindToKeep: 10,
+            stableBufferTime: 12, // ✅ ADD: Time to buffer before starting
+            bufferTimeDefault: 12 // ✅ ADD: Default buffer time
+        },
+        abr: {
+            autoSwitchBitrate: { video: true, audio: true },
+            initialBitrate: { video: 500000 },
+            maxBitrate: { video: 2500000 },
+            maxRepresentationRatio: { video: 1 },
+            bandwidthSafetyFactor: 0.9 // ✅ ADD: More conservative bitrate selection
+        },
+        scheduleWhilePaused: false,
+        fastSwitchEnabled: true,
+        lowLatencyMode: false,
+        retryIntervals: {
+            MPD: 1000, // Increase retry interval
+            XHRLoad: 2000,
+            MediaSegment: 2000 // ✅ ADD: Retry segments
+        },
+        retryAttempts: {
+            MPD: 5, // More retry attempts
+            XHRLoad: 5,
+            MediaSegment: 5 // ✅ ADD: Retry segments
+        },
+        xhr: {
+            withCredentials: false
+        },
+        gaps: { // ✅ ADD: Handle gaps in timeline
+            jumpGaps: true,
+            jumpLargeGaps: true,
+            smallGapLimit: 1.5
+        }
+    },
+    debug: {
+        logLevel: dashjs.Debug.LOG_LEVEL_WARNING // Show warnings to debug
+    }
+});
+
 
         // ✅ ENHANCED DASH EVENTS FOR CONTROLS
         dash.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, function(e) {
