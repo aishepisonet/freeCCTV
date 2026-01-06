@@ -4,52 +4,38 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>IPTV Player</title>
-  
-  <!-- External Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="https://cdn.dashjs.org/v4.7.4/dash.all.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.16.12/dist/shaka-player.compiled.min.js"></script>
-  
-  <!-- Your Styles -->
-  <link rel="stylesheet" href="style.css">
+
+  <!-- hls.js for .m3u8 -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- Use a specific version instead of 'latest' -->
+<script src="https://cdn.dashjs.org/v4.7.4/dash.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/shaka-player@4.16.12/dist/shaka-player.compiled.min.js"></script>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div id="main-content">
     <div id="video-container">
       <div id="channel-name">Loading...</div>
-      <div id="player-controls">
-        <button id="prev-btn" class="control-btn" title="Previous Channel">
-          <span>⏮</span>
-        </button>
-        <button id="play-btn" class="control-btn" title="Play/Pause">
-          <span id="play-icon">⏸</span>
-        </button>
-        <button id="next-btn" class="control-btn" title="Next Channel">
-          <span>⏭</span>
-        </button>
-      </div>
-      
-      <div id="videoWrapper">
-        <video id="videoPlayer" playsinline controls></video>
+
+        <div id="videoWrapper">
+         Players injected here 
         <div class="loader" id="loader"></div>
         <button id="unmuteBtn" type="button">Tap to Unmute</button>
         <select id="qualitySelector" aria-label="Quality selector"></select>
-        <div id="custom-controls" style="display: none;">
-          <div id="live-indicator">● LIVE</div>
-          <button id="fullscreen-btn">⛶</button>
+         <div id="custom-controls" style="display: none;">
+         <div id="live-indicator">● LIVE</div>
+         <button id="fullscreen-btn">⛶</button>
         </div>
       </div>
-    </div>
-    
+    </div> 
+
     <div id="channel-list"></div>
   </div>
 
   <footer>
     <strong>DISCLAIMER:</strong> We do not host any channels. All links are gathered from
-    <a href="https://iptv-org.github.io/" target="_blank" rel="noopener noreferrer">iptv-org</a> and YouTube online streaming.
+      <a href="https://iptv-org.github.io/" target="_blank" rel="noopener noreferrer">iptv-org</a> and YouTube online streaming.
   </footer>
-  
-  <!-- Your JavaScript Files -->
   <script src="channels.json" type="application/json"></script>
   <script src="app.js"></script>
 </body>
