@@ -1,5 +1,4 @@
- // DOM refs
-    const videoPlayer = document.getElementById('videoPlayer');
+// DOM refs
     const channelList = document.getElementById("channel-list");
     const channelName = document.getElementById("channel-name");
     const videoWrapper = document.getElementById("videoWrapper");
@@ -9,10 +8,12 @@
     
 
     // state
+    
+    let stallTimeout;
     let scrollTimeout;
+    let qualitySelectorSetup = false;
     let switching = false;
     let currentHls = null;
-    let currentDash = null;
     let currentVideo = null;
     let currentShaka = null; // Add Shaka player instance
 
@@ -58,276 +59,67 @@ function initializeChannels() {
     }
 }
 
+ // ---------------------------
+// Updated Load Channel Function
 // ---------------------------
-// Initialize Shaka Player (FIXED)
-// ---------------------------
-async function initializeShakaPlayer() {
-    // Check if Shaka Player is available
-    if (!window.shaka) {
-        console.error('Shaka Player not loaded');
-        return null;
-    }
-    
-    // Install polyfills
-    shaka.polyfill.installAll();
-    
-    // Create video element for Shaka
-    const video = setupVideoElement();
-    videoWrapper.appendChild(video);
-    currentVideo = video;
-    
-    try {
-        // Create Shaka Player instance
-        const player = new shaka.Player(video);
-        
-        // Listen for errors
-        player.addEventListener('error', (event) => {
-            console.error('Shaka Player error:', event.detail);
-        });
-        
-        return player;
-    } catch (error) {
-        console.error('Failed to create Shaka Player:', error);
-        return null;
-    }
-}
-
-// ---------------------------
-// Load Stream with Shaka Player (DEBUG VERSION)
-// ---------------------------
-async function loadShakaStream(streamData) {
-    
-    if (switching) return;
-    switching = true;
-
-    destroyCurrent();
-    showLoader(true);
-
-    setTimeout(() => switching = false, 500);
-
-    try {
-        console.group('🔍 Shaka Player - Loading Stream');
-        
-        if (!window.shaka) {
-            throw new Error('Shaka Player library not loaded');
-        }
-        
-        // Create video element
-        const video = setupVideoElement();
-        videoWrapper.appendChild(video);
-        currentVideo = video;
-
-        // Install polyfills
-        shaka.polyfill.installAll();
-        
-        // Create player
-        const player = new shaka.Player(video);
-        currentShaka = player;
-        
-        // Error handling
-        player.addEventListener('error', (event) => {
-            console.error('Shaka Player error:', event.detail);
-            showLoader(false);
-        });
-
-        // ✅ CORRECT CONFIGURATION - No invalid keys
-        player.configure({
-            streaming: {
-                bufferingGoal: 30,
-                rebufferingGoal: 2,
-                ignoreTextStreamFailures: true,
-                lowLatencyMode: false
-            },
-            manifest: {
-                dash: {
-                    ignoreMinBufferTime: true,
-                    autoCorrectDrift: true,
-                    ignoreEmptyAdaptationSet: true
-                }
-            }
-        });
-
-  // DRM configuration with better error handling
-// DRM configuration with better error handling
-if (streamData.licenseServer) {
-    console.log('🔒 Configuring DRM...');
-    console.log('License server:', streamData.licenseServer);
-    
-    const drmConfig = {
-        servers: {
-            'com.widevine.alpha': streamData.licenseServer
-        },
-        advanced: {
-            'com.widevine.alpha': {
-                videoRobustness: "SW_SECURE_CRYPTO",
-                audioRobustness: "SW_SECURE_CRYPTO"
-            }
-        },
-        // ✅ Add retry configuration
-        retryParameters: {
-            maxAttempts: 3,
-            baseDelay: 1000,
-            backoffFactor: 2,
-            fuzzFactor: 0.5,
-            timeout: 30000
-        }
-    };
-    
-    player.configure({ drm: drmConfig });
-    console.log('✅ DRM configured');
-}
-
-
-// ✅ Enhanced license request handling
-player.getNetworkingEngine().registerRequestFilter((type, request) => {
-    if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
-        console.log('📨 License request details:', {
-            url: request.uris[0],
-            method: request.method,
-            headers: request.headers,
-            body: request.body ? '***ENCRYPTED***' : 'No body'
-        });
-        
-        // Add required headers
-        request.headers = {
-            'Content-Type': 'application/octet-stream',
-            ...request.headers,
-            ...streamData.licenseHeaders
-        };
-        
-        // Log the request for debugging
-        console.log('📋 Final license request headers:', request.headers);
-    }
-});
-
-// ✅ Add response filter to see license server response
-player.getNetworkingEngine().registerResponseFilter((type, response) => {
-    if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
-        console.log('📄 License response:', {
-            status: response.status,
-            statusText: response.statusText,
-            headers: response.headers,
-            data: response.data ? '***LICENSE DATA***' : 'No data'
-        });
-        
-        if (response.status !== 200) {
-            console.error('❌ License server returned error:', response.status, response.statusText);
-        }
-    }
-});
-        // License headers
-        if (streamData.licenseHeaders) {
-            player.getNetworkingEngine().registerRequestFilter((type, request) => {
-                if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
-                    Object.assign(request.headers, streamData.licenseHeaders);
-                }
-            });
-        }
-
-        console.log('Loading stream:', streamData.link);
-        // In your loadShakaStream function, after player.load():
-        await player.load(streamData.link);
-        console.log('✅ Stream loaded successfully!');
-
-        // ✅ Add this line to setup custom time display for live streams
-        setupCustomTimeDisplay(video, player);
-
-        showLoader(false);
-        
-        // Try to play
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(err => {
-                console.log('Autoplay prevented:', err);
-                unmuteBtn.style.display = 'block';
-            });
-        }
-        
-        console.groupEnd();
-
-    } catch (error) {
-        console.error('Stream loading failed:', error);
-        showLoader(false);
-        channelName.textContent = `${channelName.textContent} - Error: ${error.message}`;
-        
-        // Fallback to regular DASH
-        if (streamData.link.includes('.mpd')) {
-            loadDash(streamData.link, streamData.license);
-        }
-    }
-}
-
-
-// ---------------------------
-// Enhanced initialize with user interaction handling
-// ---------------------------
-async function initializeChannels() {
-    try {
-        if (!Array.isArray(channels)) {
-            throw new Error('Channels data is not a valid array');
-        }
-        
-        console.log(`📺 Found ${channels.length} channels`);
-        
-        buildChannelList(channels);
-        
-        if (channels.length > 0) {
-            const firstChannel = channels[0];
-            channelName.textContent = firstChannel.name;
-            
-            // ✅ WAIT FOR PAGE TO BE FULLY READY
-            await new Promise(resolve => setTimeout(resolve, 800));
-            
-            console.log('🎬 Auto-playing first channel:', firstChannel.name);
-            loadChannel(firstChannel);
-            
-        } else {
-            channelName.innerText = "No channels available";
-        }
-        
-    } catch (err) {
-        console.error("Failed to initialize channels:", err);
-        channelName.innerText = "Failed to load channels";
-    }
-}
-
-
-// ---------------------------
-// Smart Loader with Network Detection
-// ---------------------------
-async function loadChannelOptimized(channel) {
+function loadChannel(channel) {
     if (!channel || !channel.type) return;
     
     channelName.textContent = channel.name;
     showLoader(true);
 
     try {
-        // Detect network speed (optional)
-        const networkSpeed = await detectNetworkSpeed();
-        const networkProfile = getOptimizedConfigForSpeed(networkSpeed);
-        
-        console.log(`📊 Using network profile: ${networkSpeed.toFixed(1)}Mbps`);
-
         if (channel.type === "youtube") {
             loadYouTube(channel.link);
         } else if (channel.type === "m3u8") {
-            loadHlsOptimized(channel.link);
+            loadHls(channel.link);
         } else if (channel.type === "mpd") {
-            if (channel.clearkey || channel.licenseServer) {
-                loadStreamOptimizedForSlowNetwork(channel);
-            } else {
-                loadDashOptimized(channel.link);
-            }
+            // Use smart DRM loader for MPD files
+            console.log(`Loading MPD with smart DRM: ${channel.name}`);
+            loadStreamWithSmartDRM(channel);
+        } else {
+            throw new Error(`Unsupported stream type: ${channel.type}`);
         }
     } catch (error) {
         console.error('Error loading channel:', error);
         channelName.textContent = `${channel.name} - Error: ${error.message}`;
         showLoader(false);
+    
+    channelName.textContent = `${channelName.textContent} - Shaka Error`;
+    
+    // ✅ IMPROVED: Better fallback logic
+    if (streamData.link.includes('.mpd')) {
+        console.log('🔄 Falling back to DASH.js...');
+        
+        // Create a clean stream data object for DASH fallback
+        const shakaStream = {
+            link: streamData.link,
+            license: streamData.license || null
+        };
+        
+        // Use setTimeout to avoid call stack issues
+        setTimeout(() => {
+            try {
+                loadWithShakaPlayer(shakaStream.link, shakaStream.license);
+            } catch (shakaError) {
+                console.error('DASH fallback also failed:', shakaError);
+                // Final fallback to HLS
+                const hlsLink = streamData.link.replace('.mpd', '.m3u8');
+                if (hlsLink !== streamData.link) {
+                    console.log('🔄 Trying HLS fallback...');
+                    loadHls(hlsLink);
+                }
+            }
+        }, 100);
+        
     }
+
+}
+
 }
 
 
-  // ---------------------------
+// ---------------------------
 // Enhanced DRM Support Check
 // ---------------------------
 async function checkDRMSupport() {
@@ -389,48 +181,6 @@ async function checkDRMSupport() {
     }
 }
 
-//ClearKey Support Check
-function checkClearKeySupport() {
-    console.group('🔑 ClearKey DRM Support Check');
-    
-    if (!navigator.requestMediaKeySystemAccess) {
-        console.error('❌ EME not supported in this browser');
-        console.groupEnd();
-        return false;
-    }
-    
-    const clearkeyConfig = [{
-        initDataTypes: ['cenc', 'keyids'],
-        audioCapabilities: [{
-            contentType: 'audio/mp4; codecs="mp4a.40.2"'
-        }],
-        videoCapabilities: [{
-            contentType: 'video/mp4; codecs="avc1.42E01E"'
-        }],
-        // ClearKey specific configuration
-        distinctiveIdentifier: 'not-allowed',
-        persistentState: 'not-allowed',
-        sessionTypes: ['temporary']
-    }];
-    
-    navigator.requestMediaKeySystemAccess('org.w3.clearkey', clearkeyConfig)
-        .then((access) => {
-            console.log('✅ ClearKey DRM supported');
-            console.log('Key system:', access.keySystem);
-            return access.createMediaKeys();
-        })
-        .then((mediaKeys) => {
-            console.log('✅ MediaKeys created successfully');
-            console.log('ClearKey ready to use');
-        })
-        .catch((error) => {
-            console.error('❌ ClearKey not supported:', error);
-        });
-    
-    console.groupEnd();
-}
-// Run this in console: checkClearKeySupport()
-
 
 async function loadStreamWithSmartDRM(streamData) {
     
@@ -474,6 +224,27 @@ async function loadStreamWithSmartDRM(streamData) {
         'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530',
         '4bbdc78024a54662854b412d01fafa16': '6039ec9b213aca913821677a28bd78ae',
         '92032b0e41a543fb9830751273b8debd': '03f8b65e2af785b10d6634735dbe6c11',
+        'd273c085f2ab4a248e7bfc375229007d': '7932354c3a84f7fc1b80efa6bcea0615',
+        'a2d1f552ff9541558b3296b5a932136b': 'cdd48fa884dc0c3a3f85aeebca13d444',
+        '900c43f0e02742dd854148b7a75abbec': 'da315cca7f2902b4de23199718ed7e90',
+        'be9caaa813c5305e761c66ac63645901': '3d40f2990ec5362ca5be3a3c9bb8f8b4',
+        '4ab9645a2a0a47edbd65e8479c2b9669': '8cb209f1828431ce9b50b593d1f44079',
+        'd47ebabf7a21430b83a8c4b82d9ef6b1': '54c213b2b5f885f1e0290ee4131d425b',
+        'bd17afb5dc9648a39be79ee3634dd4b8': '3ecf305d54a7729299b93a3d69c02ea5',
+        'c5e51f41ceac48709d0bdcd9c13a4d88': '20b91609967e472c27040716ef6a8b9a',
+        '53c3bf2eba574f639aa21f2d4409ff11': '3de28411cf08a64ea935b9578f6d0edd',
+        '76dc29dd87a244aeab9e8b7c5da1e5f3': '95b2f2ffd4e14073620506213b62ac82',
+        'dcbdaaa6662d4188bdf97f9f0ca5e830': '31e752b441bd2972f2b98a4b1bc1c7a1',
+        '1917f4caf2364e6d9b1507326a85ead6': 'a1340a251a5aa63a9b0ea5d9d7f67595',
+        '0a7ab3612f434335aa6e895016d8cd2d': 'b21654621230ae21714a5cab52daeb9d',
+        '2615129ef2c846a9bbd43a641c7303ef': '07c7f996b1734ea288641a68e1cfdc4d',
+        'eabd2d95c89e42f2b0b0b40ce4179ea0': '0e7e35a07e2c12822316c0dc4873903f',
+        '96701d297d1241e492d41c397631d857': 'ca2931211c1a261f082a3a2c4fd9f91b',
+        'fa3998b9a4de40659725ebc5151250d6': '998f1294b122bbf1a96c1ddc0cbb229f',
+        'e1bde543e8a140b38d3f84ace746553e': 'b712c4ec307300043333a6899a402c10',
+        '2e53f8d8a5e94bca8f9a1e16ce67df33': '3471b2464b5c7b033a03bb8307d9fa35',
+        'e1bde543e8a140b38d3f84ace746553e': 'b712c4ec307300043333a6899a402c10',
+        '4503cf86bca3494ab95a77ed913619a0': 'afc9c8f627fb3fb255dee8e3b0fe1d71',
         'c24a7811d9ab46b48b746a0e7e269210': 'c321afe1689b07d5b7e55bd025c483ce'
         }
         }
@@ -519,59 +290,7 @@ async function loadStreamWithSmartDRM(streamData) {
     }
 }
 
-async function loadStream(streamData) {
-    // DRM configuration from service
-    const drmConfig = {
-        servers: {
-            'com.widevine.alpha': streamData.drm.license_server_url
-        },
-        advanced: {
-            'com.widevine.alpha': {
-                videoRobustness: "SW_SECURE_CRYPTO",
-                audioRobustness: "SW_SECURE_CRYPTO"
-            }
-        }
-    };
-
-    // Configure player
-    player.configure({
-        streaming: {
-            abr: {
-                enabled: streamData.adaptive_bitrate || false
-            }
-        },
-        drm: drmConfig
-    });
-
-    // Add license request headers if required
-    player.getNetworkingEngine().registerRequestFilter((type, request) => {
-        if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
-            request.headers = {
-                ...request.headers,
-                ...streamData.drm.headers
-            };
-        }
-    });
-
-    try {
-        await player.load(streamData.manifest_url);
-    } catch (error) {
-        console.error('Stream loading failed:', error);
-    }
-}
-    // Unmute button functionality
-    unmuteBtn.addEventListener('click', function() {
-        if (currentVideo) {
-            currentVideo.muted = false;
-            unmuteBtn.style.display = 'none';
-            currentVideo.play().catch(err => {
-                console.log('Play after unmute failed:', err);
-            });
-        }
-    });
-
-
-    // ---------------------------
+// ---------------------------
 // Fixed DRM Support Detection (No Warnings)
 // ---------------------------
 async function detectDRMSupport() {
@@ -788,111 +507,10 @@ function getOptimizedConfigForSpeed(speedMbps) {
     // currentHls.config.maxBufferLength = config.bufferingGoal;
 })();
 
-
-function loadShakaStreamWithClearKey(streamData) {
-    
-    if (switching) return;
-    switching = true;
-
-    destroyCurrent();
-    showLoader(true);
-
-    setTimeout(() => switching = false, 500);
-
-    try {
-        const video = setupVideoElement();
-        videoWrapper.appendChild(video);
-        currentVideo = video;
-
-        shaka.polyfill.installAll();
-        
-        // Create player with new method
-        const player = new shaka.Player();
-         player.attach(video);
-        currentShaka = player;
-
-        // ClearKey DRM configuration
-        if (streamData.clearkey) {
-            console.log('🔑 Configuring ClearKey DRM...');
-            
-            const clearkeyConfig = {
-                servers: {
-                    'org.w3.clearkey': 'data:application/json;base64,eyJrZXlzIjpbXSwidHlwZSI6InRlbXBvcmFyeSJ9' // Empty keyset
-                },
-                advanced: {
-                    'org.w3.clearkey': {
-                        // Optional: Add any ClearKey-specific configuration
-                    }
-                },
-                clearKeys: {} // Will be populated with keys
-            };
-
-            // Parse ClearKey data (format: "keyId:keyValue" or array of keys)
-            if (typeof streamData.clearkey === 'string') {
-                // Single key: "keyId:keyValue"
-                const [keyId, keyValue] = streamData.clearkey.split(':');
-                if (keyId && keyValue) {
-                    clearkeyConfig.clearKeys[keyId] = keyValue;
-                }
-            } else if (Array.isArray(streamData.clearkey)) {
-                // Multiple keys: [{keyId: '...', key: '...'}, ...]
-                streamData.clearkey.forEach(keyData => {
-                    if (keyData.keyId && keyData.key) {
-                        clearkeyConfig.clearKeys[keyData.keyId] = keyData.key;
-                    }
-                });
-            } else if (typeof streamData.clearkey === 'object') {
-                // Object format: {keyId1: 'key1', keyId2: 'key2'}
-                clearkeyConfig.clearKeys = { ...streamData.clearkey };
-            }
-
-            console.log('ClearKey keys configured:', Object.keys(clearkeyConfig.clearKeys).length);
-            player.configure({ drm: clearkeyConfig });
-        }
-
-        // Basic configuration
-        player.configure({
-            streaming: {
-                bufferingGoal: 30,
-                rebufferingGoal: 2
-            }
-        });
-
-        player.configure({
-        drm: {
-        clearKeys: {
-        'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530',
-        'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530',
-        '4bbdc78024a54662854b412d01fafa16': '6039ec9b213aca913821677a28bd78ae',
-        '92032b0e41a543fb9830751273b8debd': '03f8b65e2af785b10d6634735dbe6c11',
-        'c24a7811d9ab46b48b746a0e7e269210': 'c321afe1689b07d5b7e55bd025c483ce'
-        }
-        }
-    });
-
-        // Load the stream
-         player.load(streamData.link);
-        console.log('✅ Stream loaded with ClearKey DRM');
-        
-        showLoader(false);
-        video.play().catch(err => {
-            console.log('Autoplay prevented:', err);
-            unmuteBtn.style.display = 'block';
-        });
-
-    } catch (error) {
-        console.error('ClearKey DRM failed:', error);
-        showLoader(false);
-        channelName.textContent = `${channelName.textContent} - DRM Error`;
-    }
-}
-//Updated Custom Time Display (Simplified)
-// ---------------------------
-// Enhanced Live Stream Time Display
-// ---------------------------
 // ---------------------------
 // Fixed Live Stream Time Display (Public APIs Only)
 // ---------------------------
+
 function setupCustomTimeDisplay(video, player) {
     // Remove existing display
     const existingDisplay = document.getElementById('custom-time-display');
@@ -1111,72 +729,6 @@ function setupSimpleLiveDisplay(video) {
     };
 }
 
-// ---------------------------
-// Debug channels data
-// ---------------------------
-function debugChannelsData() {
-    console.group('🔍 Channels Data Debug');
-    console.log('Channels array:', channels);
-    console.log('Channels length:', channels.length);
-    
-    if (Array.isArray(channels)) {
-        channels.forEach((channel, index) => {
-            console.log(`Channel ${index}:`, {
-                name: channel.name,
-                type: channel.type,
-                link: channel.link,
-                logo: channel.logo,
-                hasLogo: !!(channel.logo && channel.logo !== 'undefined')
-            });
-        });
-    }
-    
-    console.groupEnd();
-}
-
-// Call this in your console to check your data
-// debugChannelsData();
-
-    // ---------------------------
-    // Initialize channels
-    // ---------------------------
-    // ---------------------------
-// Initialize channels (UPDATED)
-// ---------------------------
-function initializeChannels() {
-    try {
-        if (!Array.isArray(channels)) {
-            throw new Error('Channels data is not a valid array');
-        }
-        
-        // Validate and clean channels data
-        const validatedChannels = validateChannels(channels);
-        
-        if (validatedChannels.length === 0) {
-            throw new Error('No valid channels found');
-        }
-        
-        buildChannelList(channels);
-        
-        if (channels.length > 0) {
-            // ✅ Auto-play the first channel
-            const firstChannel = channels[0];
-            console.log('🎬 Auto-playing first channel:', firstChannel.name);
-            loadChannel(firstChannel);
-        } else {
-            channelName.innerText = "No channels available";
-        }
-        
-    } catch (err) {
-        console.error("Failed to initialize channels:", err);
-        channelName.innerText = "Failed to load channels";
-        
-        channelList.innerHTML = `<div style="color: #ff6b6b; text-align: center; padding: 20px;">
-            Error loading channels: ${err.message}
-        </div>`;
-    }
-}
-
 
 // ---------------------------
 // Safe logo loader
@@ -1303,7 +855,13 @@ function validateChannels(channels) {
     // ---------------------------
     function showLoader(show) { 
         loader.style.display = show ? 'block' : 'none'; 
+
+         if (show) {
+        channelName.classList.add('loading');
+    } else {
+        channelName.classList.remove('loading');
     }
+}
 
     function log(...args) { 
         console.log('[IPTV]', ...args); 
@@ -1499,44 +1057,9 @@ v.addEventListener('progress', () => {
     return v;
 }
 
-
-function checkShakaPlayerStatus() {
-    console.group('🔍 Shaka Player Status Check');
-    
-    if (!window.shaka) {
-        console.error('❌ Shaka Player library not loaded');
-        console.groupEnd();
-        return false;
-    }
-    
-    console.log('✅ Shaka Player version:', shaka.Player.version);
-    console.log('✅ Browser supported:', shaka.Player.isBrowserSupported());
-    
-    if (currentShaka) {
-        console.log('✅ Shaka Player instance exists');
-        try {
-            const manifest = currentShaka.getManifest();
-            console.log('✅ Manifest loaded:', !!manifest);
-            if (manifest) {
-                console.log('Variants:', manifest.variants.length);
-                console.log('Text streams:', manifest.textStreams.length);
-                console.log('Is live:', manifest.presentationTimeline.isLive());
-            }
-        } catch (error) {
-            console.error('❌ Error checking manifest:', error);
-        }
-    } else {
-        console.log('❌ No Shaka Player instance');
-    }
-    
-    console.groupEnd();
-    return true;
-}
-// Run this in console: checkShakaPlayerStatus()
-    
     // ---------------------------
-// Updated Destroy Function
-// ---------------------------
+    // Updated Destroy Function
+    // ---------------------------
 function destroyCurrent() {
     // --- Destroy Shaka Player ---
     if (currentShaka) {
@@ -1822,11 +1345,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
- // ---------------------------
-// Optimized HLS for Slow Networks with Controls
-// ---------------------------
-function loadHlsOptimized(link) {
-
+    function loadWithShakaPlayer(link, licenseData = null) {
     if (switching) return;
     switching = true;
 
@@ -1839,610 +1358,96 @@ function loadHlsOptimized(link) {
     videoWrapper.appendChild(video);
     currentVideo = video;
 
-    // ✅ Add class for custom controls
-    video.classList.add('video-with-custom-controls');
+    // 1. Check Browser Support
+    if (!shaka.Player.isBrowserSupported()) {
+        console.error("Shaka Player: Browser not supported!");
+        showLoader(false);
+        channelName.textContent = `${channelName.textContent} - Browser not supported`;
+        return;
+    }
 
-    if (Hls.isSupported()) {
-        const hls = new Hls({
-            // ⚡ Optimized for slow networks
-            maxBufferLength: 30,           // Reduced buffer
-            maxMaxBufferLength: 60,
-            maxBufferSize: 30 * 1000 * 1000, // 30MB buffer max
-            maxLoadingDelay: 4,            // Reduced delay
+    // 2. Create Player Instance and attach to video element
+    const player = new shaka.Player(video);
+    currentShakaPlayer = player; // Store reference globally to control later
+
+    // 3. Configure Player
+    player.configure({
+        streaming: {
+            bufferingGoal: 30,
+            rebufferingGoal: 2,
+            bufferBehind: 30,
             lowLatencyMode: false,
-            backBufferLength: 10,          // Reduced back buffer
-            
-            // 📊 ABR settings
-            enableWorker: true,
-            abrEwmaDefaultEstimate: 500000, // Start with 500kbps
-            abrEwmaSlowLive: 5.0,
-            abrEwmaFastLive: 3.0,
-            abrEwmaDefaultLive: 4.0,
-            
-            // 🔧 Performance
-            stretchShortVideoTrack: true,
-            maxFragLookUpTolerance: 0.1,
-            liveSyncDurationCount: 2,       // Reduced for live
-            liveMaxLatencyDurationCount: 5
-        });
-
-        hls.loadSource(link);
-        hls.attachMedia(video);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-            console.log('✅ HLS manifest parsed');
-            
-            // ✅ SHOW CUSTOM CONTROLS
-            customControls.show();
-            
-            // ✅ DETECT LIVE STREAM
-            const isLive = data.live || video.duration === Infinity;
-            customControls.setLiveIndicator(isLive);
-            
-            // Force lower quality initially
-            if (hls.levels.length > 1) {
-                const suitableLevels = hls.levels.filter(level => 
-                    level.height <= 480 && level.bitrate <= 1500000
-                );
-                
-                if (suitableLevels.length > 0) {
-                    const targetLevel = suitableLevels.reduce((prev, current) => 
-                        (prev.bitrate > current.bitrate) ? prev : current
-                    );
-                    hls.currentLevel = targetLevel.level;
-                    console.log(`🎯 Selected level: ${targetLevel.height}p @ ${Math.round(targetLevel.bitrate/1000)}kbps`);
-                }
+            inaccurateManifestTolerance: 0,
+            retryParameters: {
+                maxAttempts: 5,
+                baseDelay: 1000,
+                backoffFactor: 2,
+                fuzzFactor: 0.5,
+                timeout: 30000
             }
-            
-            showLoader(false);
-            handleAutoplayRestrictions(video);
-        });
-
-        // ✅ UPDATE LIVE DELAY FOR LIVE STREAMS
-        hls.on(Hls.Events.LEVEL_UPDATED, function (event, data) {
-            if (data.details && data.details.live) {
-                const delay = data.details.liveSyncDuration || data.details.targetduration * 3;
-                customControls.updateLiveDelay(delay);
-            }
-        });
-
-        // ✅ UPDATE LIVE DELAY ON FRAGMENT LOADS
-        hls.on(Hls.Events.FRAG_LOADED, function (event, data) {
-            if (hls.levels[hls.currentLevel] && hls.levels[hls.currentLevel].details && hls.levels[hls.currentLevel].details.live) {
-                const level = hls.levels[hls.currentLevel];
-                const delay = level.details.liveSyncDuration || level.details.targetduration * 3;
-                customControls.updateLiveDelay(delay);
-            }
-        });
-
-        currentHls = hls;
-
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        // Safari native HLS
-        video.src = link;
-        video.addEventListener("loadedmetadata", () => {
-            // ✅ SHOW CUSTOM CONTROLS
-            customControls.show();
-            
-            // ✅ DETECT LIVE STREAM FOR SAFARI
-            const isLive = video.duration === Infinity;
-            customControls.setLiveIndicator(isLive);
-            
-            showLoader(false);
-            handleAutoplayRestrictions(video);
-        });
-
-        // ✅ UPDATE LIVE INDICATOR FOR SAFARI LIVE STREAMS
-        video.addEventListener('timeupdate', () => {
-            if (video.duration === Infinity) {
-                // For Safari live streams, we can't get exact delay but show LIVE indicator
-                customControls.setLiveIndicator(true);
-            }
-        });
-    }
-
-    // ✅ ADD VIDEO EVENT LISTENERS FOR CONTROLS
-    video.addEventListener('play', () => {
-        customControls.show();
-    });
-
-    video.addEventListener('pause', () => {
-        customControls.show();
-    });
-
-    video.addEventListener('ended', () => {
-        customControls.show();
-    });
-}
-
-    function loadDash(link, licenseData = null) {
-
-    if (switching) return;
-    switching = true;
-
-    destroyCurrent();
-    showLoader(true);
-
-    setTimeout(() => switching = false, 500);
-
-    const video = setupVideoElement();
-    videoWrapper.appendChild(video);
-    currentVideo = video;
-
-    // Check if MediaSource is supported
-    if (!dashjs.supportsMediaSource()) {
-        console.error("MediaSource not supported");
-        showLoader(false);
-        channelName.textContent = `${channelName.textContent} - MediaSource not supported`;
-        return;
-    }
-
-    try {
-        console.log('🎬 Initializing DASH player...');
-        
-        // ✅ FIXED: Create DASH player with proper error handling
-        const dash = dashjs.MediaPlayer().create();
-        currentDash = dash;
-
-        // ✅ FIXED: Basic configuration first
-        dash.updateSettings({
-            streaming: {
-                delay: {
-                    liveDelay: 4
-                },
-                abr: {
-                    autoSwitchBitrate: {
-                        video: true,
-                        audio: true
-                    }
-                },
-                scheduleWhilePaused: false,
-                fastSwitchEnabled: true
-            },
-            debug: {
-                logLevel: dashjs.Debug.LOG_LEVEL_ERROR // Reduce verbosity
-            }
-        });
-
-        // ✅ FIXED: Safe event registration with null checks
-        const safeOn = (eventType, handler) => {
-            if (!eventType) {
-                console.error('Cannot register event with null/undefined type');
-                return;
-            }
-            try {
-                dash.on(eventType, handler);
-            } catch (error) {
-                console.error(`Failed to register ${eventType} event:`, error);
-            }
-        };
-
-        // ✅ FIXED: Register events safely
-        safeOn(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function() {
-    console.log("DASH: Stream initialized");
-    showLoader(false);
-    
-    // ✅ FIXED: Get bitrates after stream is initialized
-    try {
-        const bitrates = dash.getBitrateInfoListFor("video");
-        if (bitrates && bitrates.length > 1) {
-            populateDashQualitySelector(dash, bitrates);
-        } else {
-            qualitySelector.style.display = "none";
-        }
-    } catch (error) {
-        console.warn('Could not get bitrates:', error);
-        qualitySelector.style.display = "none";
-    }
-
-    safeOn(dashjs.MediaPlayer.events.ERROR, function(e) {
-    console.error("DASH: Player error:", e);
-    
-    // Check if it's a CORS or network error but stream might still work
-    if (e.error === "download" && e.event?.request?.status === 200) {
-        console.log("DASH: Got 200 OK despite error, attempting to continue...");
-        // Don't show loader, let it try to continue
-        return;
-    }
-    
-    showLoader(false);
-});
-});
-
-
-        safeOn(dashjs.MediaPlayer.events.PLAYBACK_STARTED, function() {
-            console.log("DASH: Playback started");
-            showLoader(false);
-        });
-
-    safeOn(dashjs.MediaPlayer.events.ERROR, function(e) {
-    console.error("DASH: Player error:", e);
-    
-    // Don't immediately stop on download errors - try to recover
-    if (e.error && e.error.code === dashjs.MediaPlayer.errors.DOWNLOAD_ERROR_ID_MANIFEST_CODE) {
-        console.log("DASH: Manifest download error, attempting recovery...");
-        return; // Let retries handle it
-    }
-    
-    // For segment errors, also try to recover
-    if (e.error && (e.error.code === dashjs.MediaPlayer.errors.DOWNLOAD_ERROR_ID_SEGMENTS_CODE ||
-                    e.error.code === dashjs.MediaPlayer.errors.DOWNLOAD_ERROR_ID_XLINK_CODE)) {
-        console.log("DASH: Segment download error, attempting recovery...");
-        return; // Let retries handle it
-    }
-    
-    showLoader(false);
-});
-
-        // ✅ FIXED: Set up DRM only if license data is provided and valid
-        if (licenseData && licenseData.type === "clearkey") {
-            try {
-                const [keyId, keyValue] = licenseData.key.split(':');
-                if (keyId && keyValue) {
-                    const protectionData = {
-                        "org.w3.clearkey": {
-                            "clearkeys": {
-                                [keyId]: keyValue
-                            }
-                        }
-                    };
-                    dash.setProtectionData(protectionData);
-                    console.log('DASH: DRM configured with ClearKey');
-                }
-            } catch (drmError) {
-                console.error('DASH: DRM setup error:', drmError);
-            }
-        }
-
-        // ✅ FIXED: Initialize with error handling
-        console.log("DASH: Initializing player with URL:", link);
-        dash.initialize(video, link, true);
-
-// Helper function to setup quality selector
-let qualitySelectorSetup = false;
-
-const setupQualitySelector = () => {
-    if (qualitySelectorSetup) return;
-    
-    try {
-        // Verify dash player is ready
-        if (!dash) {
-            console.warn('DASH player not available');
-            return;
-        }
-        
-        // Check if method exists
-        if (typeof dash.getBitrateInfoListFor !== 'function') {
-            console.warn('getBitrateInfoListFor method not available');
-            qualitySelector.style.display = "none";
-            return;
-        }
-        
-        const bitrates = dash.getBitrateInfoListFor("video");
-        
-        if (bitrates && bitrates.length > 1) {
-            populateDashQualitySelector(dash, bitrates);
-            qualitySelectorSetup = true;
-            console.log('DASH: Quality selector populated with', bitrates.length, 'options');
-        } else {
-            console.log('DASH: Only one bitrate available');
-            qualitySelector.style.display = "none";
-        }
-    } catch (error) {
-        console.warn('Could not get bitrates:', error);
-        qualitySelector.style.display = "none";
-    }
-};
-
-// ✅ Keep MANIFEST_LOADED but only for logging
-safeOn(dashjs.MediaPlayer.events.MANIFEST_LOADED, function(e) {
-    console.log("DASH: Manifest loaded successfully");
-    // Don't setup quality selector here - too early!
-});
-
-// ✅ Setup quality selector on STREAM_INITIALIZED
-safeOn(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function() {
-    console.log("DASH: Stream initialized");
-    showLoader(false);
-    setTimeout(setupQualitySelector, 300); // Small delay to ensure bitrates are ready
-});
-
-// ✅ Also try on PLAYBACK_STARTED as backup
-safeOn(dashjs.MediaPlayer.events.PLAYBACK_STARTED, function() {
-    console.log("DASH: Playback started");
-    showLoader(false);
-    setupQualitySelector(); // Try again if it didn't work earlier
-});
-
-        // Handle video events
-        // In loadDash function:
-video.addEventListener('loadedmetadata', () => {
-    showLoader(false);
-    handleAutoplayRestrictions(video); // ✅ Use enhanced handler
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(err => {
-                    console.log('DASH: Autoplay prevented:', err);
-                    unmuteBtn.style.display = 'block';
-                });
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Failed to initialize DASH player:', error);
-        channelName.textContent = `${channelName.textContent} - DASH Error`;
-        showLoader(false);
-        
-        // Final fallback: try HLS if DASH fails
-        const hlsLink = link.replace('.mpd', '.m3u8');
-        if (hlsLink !== link) {
-            console.log("DASH: Trying HLS fallback...");
-            loadHls(hlsLink);
-        }
-    }
-
-
-// Detect playback stalls
-let stallTimeout;
-video.addEventListener('waiting', () => {
-    console.warn("DASH: Video waiting/stalled");
-    showLoader(true);
-    
-    // If stalled for more than 10 seconds, try to recover
-    stallTimeout = setTimeout(() => {
-        console.error("DASH: Stalled for 10s, attempting recovery...");
-        if (currentDash) {
-            try {
-                const currentTime = video.currentTime;
-                currentDash.reset();
-                currentDash.attachSource(link);
-                video.currentTime = currentTime;
-            } catch (err) {
-                console.error("DASH: Recovery failed:", err);
-            }
-        }
-    }, 10000);
-});
-
-
-video.addEventListener('playing', () => {
-    console.log("DASH: Video playing");
-    clearTimeout(stallTimeout);
-    showLoader(false);
-});
-
-// Add after other event handlers
-safeOn(dashjs.MediaPlayer.events.BUFFER_EMPTY, function(e) {
-    console.warn("DASH: Buffer empty for", e.mediaType);
-    showLoader(true);
-});
-
-
-    // ---------------------------
-// Optimized DASH for Slow Networks
-// ---------------------------
-function loadDashOptimized(link, licenseData = null) {
-    
-    if (switching) return;
-    switching = true;
-
-    destroyCurrent();
-    showLoader(true);
-
-    setTimeout(() => switching = false, 500);
-
-    const video = setupVideoElement();
-    videoWrapper.appendChild(video);
-    currentVideo = video;
-
-    // Add class for custom controls
-    video.classList.add('video-with-custom-controls');
-
-    try {
-        const dash = dashjs.MediaPlayer().create();
-        currentDash = dash;
-
-        dash.updateSettings({
-    streaming: {
-        delay: { 
-            liveDelay: 8, // Increase delay for more buffer
-            liveCatchUp: 0.05 // Slower catch-up
-        },
-        buffer: {
-            bufferTimeAtTopQuality: 20, // Increase buffer
-            bufferAheadToKeep: 20,
-            bufferBehindToKeep: 10,
-            stableBufferTime: 12, // ✅ ADD: Time to buffer before starting
-            bufferTimeDefault: 12 // ✅ ADD: Default buffer time
         },
         abr: {
-            autoSwitchBitrate: { video: true, audio: true },
-            initialBitrate: { video: 500000 },
-            maxBitrate: { video: 2500000 },
-            maxRepresentationRatio: { video: 1 },
-            bandwidthSafetyFactor: 0.9 // ✅ ADD: More conservative bitrate selection
-        },
-        scheduleWhilePaused: false,
-        fastSwitchEnabled: true,
-        lowLatencyMode: false,
-        retryIntervals: {
-            MPD: 1000, // Increase retry interval
-            XHRLoad: 2000,
-            MediaSegment: 2000 // ✅ ADD: Retry segments
-        },
-        retryAttempts: {
-            MPD: 5, // More retry attempts
-            XHRLoad: 5,
-            MediaSegment: 5 // ✅ ADD: Retry segments
-        },
-        xhr: {
-            withCredentials: false
-        },
-        gaps: { // ✅ ADD: Handle gaps in timeline
-            jumpGaps: true,
-            jumpLargeGaps: true,
-            smallGapLimit: 1.5
+            enabled: true,
+            defaultBandwidthEstimate: 500000,
+            switchInterval: 2
         }
-    },
-    debug: {
-        logLevel: dashjs.Debug.LOG_LEVEL_WARNING // Show warnings to debug
-    }
-});
+    });
 
-
-        // ✅ ENHANCED DASH EVENTS FOR CONTROLS
-        dash.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, function(e) {
-            console.log("DASH: Manifest loaded");
-            
-            // ✅ SHOW CONTROLS
-            customControls.show();
-            
-            // ✅ DETECT LIVE STREAM
-            const isLive = dash.isDynamic();
-            customControls.setLiveIndicator(isLive);
-            
-            console.log(`📊 DASH Stream Info: Live=${isLive}, Duration=${dash.duration()}`);
-            
-            showLoader(false);
-        });
-
-        dash.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function() {
-            console.log("DASH: Stream initialized");
-        });
-
-        // ✅ UPDATE LIVE DELAY FOR DASH LIVE STREAMS
-        let liveUpdateInterval;
-        dash.on(dashjs.MediaPlayer.events.PLAYBACK_STARTED, function() {
-            console.log("DASH: Playback started");
-            
-            if (dash.isDynamic()) {
-                // Start updating live delay periodically
-                liveUpdateInterval = setInterval(() => {
-                    try {
-                        const liveDelay = dash.getTargetLiveDelay();
-                        const currentTime = dash.time();
-                        const duration = dash.duration();
-                        
-                        customControls.updateLiveDelay(liveDelay);
-                        
-                        // Log live stream info for debugging
-                        if (Math.random() < 0.01) { // Log occasionally to avoid spam
-                            console.log(`📊 Live Stats: Delay=${liveDelay.toFixed(1)}s, Time=${currentTime.toFixed(1)}`);
-                        }
-                    } catch (error) {
-                        console.log('Error updating live delay:', error);
+    // 4. Set up DRM (ClearKey example)
+    if (licenseData && licenseData.type === "clearkey") {
+        try {
+            const [keyId, keyValue] = licenseData.key.split(':');
+            player.configure({
+                drm: {
+                    clearKeys: {
+                        [keyId]: keyValue
                     }
-                }, 1000); // Update every second
-            }
-        });
-
-        // ✅ HANDLE PLAYBACK ERRORS
-        dash.on(dashjs.MediaPlayer.events.ERROR, function(e) {
-            console.error("DASH: Player error", e);
-            if (e.error && e.error.code === dashjs.MediaPlayer.errors.MANIFEST_LOADER_LOADING_FAILURE_ERROR) {
-                console.log("DASH: Manifest loading failed");
-            }
-        });
-
-        dash.on(dashjs.MediaPlayer.events.PLAYBACK_ERROR, function(e) {
-            console.error("DASH: Playback error", e);
-        });
-
-        // ✅ HANDLE QUALITY CHANGES
-        dash.on(dashjs.MediaPlayer.events.QUALITY_CHANGE_REQUESTED, function(e) {
-            console.log(`🎯 DASH: Quality change to ${e.mediaType} bitrate ${Math.round(e.newQuality/1000)}kbps`);
-        });
-
-        // ✅ CLEAN UP ON PLAYBACK ENDED
-        dash.on(dashjs.MediaPlayer.events.PLAYBACK_ENDED, function() {
-            console.log("DASH: Playback ended");
-            if (liveUpdateInterval) {
-                clearInterval(liveUpdateInterval);
-            }
-        });
-
-        // ✅ INITIALIZE DASH PLAYER
-        console.log("🎬 Initializing DASH player...");
-        dash.initialize(video, link, false); // Don't autoplay initially
-        
-        // ✅ ADD VIDEO EVENT LISTENERS FOR CONTROLS
-        video.addEventListener('loadeddata', () => {
-            console.log("DASH: Video data loaded");
-            
-            // Try to play after a short delay
-            setTimeout(() => {
-                video.play().catch(err => {
-                    console.log('DASH autoplay prevented:', err);
-                });
-            }, 500);
-        });
-
-        video.addEventListener('play', () => {
-            customControls.show();
-        });
-
-        video.addEventListener('pause', () => {
-            customControls.show();
-        });
-
-        video.addEventListener('ended', () => {
-            customControls.show();
-            if (liveUpdateInterval) {
-                clearInterval(liveUpdateInterval);
-            }
-        });
-
-        video.addEventListener('waiting', () => {
-            console.log("DASH: Video waiting/buffering");
-        });
-
-        video.addEventListener('playing', () => {
-            console.log("DASH: Video playing");
-        });
-
-        // ✅ ADD KEYBOARD SHORTCUTS FOR DASH PLAYER
-        video.addEventListener('keydown', (e) => {
-            // F key for fullscreen
-            if (e.key === 'f' || e.key === 'F') {
-                e.preventDefault();
-                customControls.toggleFullscreen();
-            }
-            
-            // Space for play/pause
-            if (e.key === ' ') {
-                e.preventDefault();
-                if (video.paused) {
-                    video.play();
-                } else {
-                    video.pause();
                 }
-            }
-        });
-
-        // Make video focusable for keyboard controls
-        video.setAttribute('tabindex', '0');
-
-    } catch (error) {
-        console.error('❌ DASH initialization failed:', error);
-        showLoader(false);
-        channelName.textContent = `${channelName.textContent} - DASH Error`;
-        
-        // ✅ FALLBACK TO OTHER PLAYERS
-        setTimeout(() => {
-            console.log("🔄 Trying fallback after DASH failure...");
-            const fallbackData = { 
-                name: channelName.textContent, 
-                type: "mpd", 
-                link: link 
-            };
-            handleStreamErrorFallback(fallbackData, error.message);
-        }, 1000);
+            });
+            console.log('Shaka Player: ClearKey DRM configured');
+        } catch (drmError) {
+            console.error('Shaka Player: DRM setup error:', drmError);
         }
     }
+
+    // 5. Listen to Player Events
+    player.addEventListener('error', (event) => {
+        console.error('Shaka Player: Error event:', event.detail);
+        showLoader(false);
+    });
+
+    player.addEventListener('loading', () => {
+        showLoader(true);
+    });
+
+    player.addEventListener('loaded', () => {
+        console.log("Shaka Player: Manifest loaded.");
+        showLoader(false);
+    });
+
+    player.addEventListener('adaptation', () => {
+        console.log("Shaka Player: Adaptation changed.");
+        // You can update a quality selector UI here if needed
+        populateShakaQualitySelector(player);
+    });
+
+    // 6. Load the Stream
+    console.log("Shaka Player: Loading stream:", link);
+    player.load(link).then(() => {
+        console.log("Shaka Player: Playback started!");
+        showLoader(false);
+        video.play().catch(e => console.log("Autoplay prevented:", e));
+    }).catch((error) => {
+        console.error('Shaka Player: Error loading stream:', error);
+        showLoader(false);
+    });
 }
 
-
-
+// Helper to create quality selector (basic example)
+function populateShakaQualitySelector(player) {
+    const tracks = player.getVariantTracks();
+    // ... logic to build UI from tracks array ...
+}
     // ---------------------------
     // Quality selector helpers
     // ---------------------------
@@ -2473,39 +1478,7 @@ function loadDashOptimized(link, licenseData = null) {
         };
     }
 
-    function populateDashQualitySelector(dash, bitrates) {
-        qualitySelector.innerHTML = "";
-        const autoOption = document.createElement("option");
-        autoOption.value = "auto";
-        autoOption.textContent = "Auto";
-        qualitySelector.appendChild(autoOption);
-
-        bitrates.forEach((bitrate, i) => {
-            const opt = document.createElement("option");
-            opt.value = i;
-            const height = bitrate.height || 'Unknown';
-            const bitrateText = bitrate.bitrate ? ` (${Math.round(bitrate.bitrate/1000)}kbps)` : '';
-            opt.textContent = `${height}p${bitrateText}`;
-            qualitySelector.appendChild(opt);
-        });
-
-        qualitySelector.style.display = "inline-block";
-
-        qualitySelector.onchange = function () {
-            try {
-                if (this.value === "auto") {
-                    dash.setQualityFor("video", -1);
-                } else {
-                    dash.setQualityFor("video", parseInt(this.value));
-                }
-            } catch (e) {
-                console.warn('Could not change quality:', e);
-            }
-        };
-    }
-
-
-    // ---------------------------
+// ---------------------------
 // User Quality Selection
 // ---------------------------
 function populateOptimizedQualitySelector(hls, levels) {
@@ -2566,63 +1539,7 @@ function formatTimeDisplay(currentTime, duration) {
     return `${formatTime(currentTime)} / ${formatTime(duration)}`;
 }
 
-    // ---------------------------
-// Updated Load Channel Function
-// ---------------------------
-function loadChannel(channel) {
-    if (!channel || !channel.type) return;
-    
-    channelName.textContent = channel.name;
-    showLoader(true);
-
-    try {
-        if (channel.type === "youtube") {
-            loadYouTube(channel.link);
-        } else if (channel.type === "m3u8") {
-            loadHls(channel.link);
-        } else if (channel.type === "mpd") {
-            // Use smart DRM loader for MPD files
-            console.log(`Loading MPD with smart DRM: ${channel.name}`);
-            loadStreamWithSmartDRM(channel);
-        } else {
-            throw new Error(`Unsupported stream type: ${channel.type}`);
-        }
-    } catch (error) {
-        console.error('Error loading channel:', error);
-        channelName.textContent = `${channel.name} - Error: ${error.message}`;
-        showLoader(false);
-    
-    channelName.textContent = `${channelName.textContent} - Shaka Error`;
-    
-    // ✅ IMPROVED: Better fallback logic
-    if (streamData.link.includes('.mpd')) {
-        console.log('🔄 Falling back to DASH.js...');
-        
-        // Create a clean stream data object for DASH fallback
-        const dashStream = {
-            link: streamData.link,
-            license: streamData.license || null
-        };
-        
-        // Use setTimeout to avoid call stack issues
-        setTimeout(() => {
-            try {
-                loadDash(dashStream.link, dashStream.license);
-            } catch (dashError) {
-                console.error('DASH fallback also failed:', dashError);
-                // Final fallback to HLS
-                const hlsLink = streamData.link.replace('.mpd', '.m3u8');
-                if (hlsLink !== streamData.link) {
-                    console.log('🔄 Trying HLS fallback...');
-                    loadHls(hlsLink);
-                }
-            }
-        }, 100);
-    }
-}
-}
-
-
+   
 // Helper function to format ClearKey keys
 function formatClearKeyKeys(keys) {
     if (typeof keys === 'string') {
@@ -2653,230 +1570,6 @@ function formatClearKeyKeys(keys) {
 //};
 
 
-function loadDashWithClearKey(link, clearkeyData) {
-    
-    if (switching) return;
-    switching = true;
-
-    destroyCurrent();
-    showLoader(true);
-
-    setTimeout(() => switching = false, 500);
-
-    const video = setupVideoElement();
-    videoWrapper.appendChild(video);
-    currentVideo = video;
-
-    try {
-        const dash = dashjs.MediaPlayer().create();
-        currentDash = dash;
-
-        // Configure ClearKey for DASH.js
-        if (clearkeyData) {
-            const protectionData = {
-                "org.w3.clearkey": {
-                    "clearkeys": {}
-                }
-            };
-
-            // Parse ClearKey data
-            if (typeof clearkeyData === 'string') {
-                const [keyId, keyValue] = clearkeyData.split(':');
-                if (keyId && keyValue) {
-                    protectionData["org.w3.clearkey"].clearkeys[keyId] = keyValue;
-                }
-            } else if (typeof clearkeyData === 'object') {
-                protectionData["org.w3.clearkey"].clearkeys = { ...clearkeyData };
-            }
-
-            console.log('DASH.js ClearKey configuration:', protectionData);
-            dash.setProtectionData(protectionData);
-        }
-
-        // Basic configuration
-        dash.updateSettings({
-            streaming: {
-                fastSwitchEnabled: true,
-                abr: { autoSwitchBitrate: true }
-            }
-        });
-
-        // Event handlers
-        dash.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, () => {
-            console.log("DASH: Manifest loaded with ClearKey");
-            showLoader(false);
-        });
-
-        dash.on(dashjs.MediaPlayer.events.ERROR, (e) => {
-            console.error("DASH: Error:", e);
-            showLoader(false);
-        });
-
-        // Initialize
-        dash.initialize(video, link, false);
-        
-        video.addEventListener('loadeddata', () => {
-            video.play().catch(err => {
-                console.log('Autoplay prevented:', err);
-                unmuteBtn.style.display = 'block';
-            });
-        });
-
-    } catch (error) {
-        console.error('DASH with ClearKey failed:', error);
-        showLoader(false);
-        channelName.textContent = `${channelName.textContent} - DRM Error`;
-    }
-}
-
-
-// ---------------------------
-// Optimized for 3Mbps Network
-// ---------------------------
-function loadStreamOptimizedForSlowNetwork(streamData) {
-    
-    if (switching) return;
-    switching = true;
-
-    destroyCurrent();
-    showLoader(true);
-
-    setTimeout(() => switching = false, 500);
-
-    try {
-        const video = setupVideoElement();
-        videoWrapper.appendChild(video);
-        currentVideo = video;
-
-        shaka.polyfill.installAll();
-        const player = new shaka.Player();
-        player.attach(video);
-        currentShaka = player;
-
-        // ✅ OPTIMIZED CONFIGURATION FOR 3MBPS
-        player.configure({
-            streaming: {
-                // ⚡ CRITICAL: Reduce buffer sizes for slow connections
-                bufferingGoal: 15,           // Reduced from 30 to 15 seconds
-                rebufferingGoal: 1.5,        // Reduced from 2 to 1.5 seconds
-                bufferBehind: 20,            // Reduced from 30 to 20 seconds
-                
-                // 🔧 Performance optimizations
-                lowLatencyMode: false,       // Disable for better stability
-                ignoreTextStreamFailures: true,
-                inaccurateManifestTolerance: 0,
-                
-                // 📊 ABR (Adaptive Bitrate) optimizations
-                abr: {
-                    enabled: true,
-                    defaultBandwidthEstimate: 500000, // Start with 500kbps
-                    restrictions: {
-                        minBandwidth: 100000,   // 100kbps minimum
-                        maxBandwidth: 2500000,  // 2.5Mbps maximum (below your 3Mbps limit)
-                        minWidth: 320,          // Minimum 320p
-                        maxWidth: 1280,         // Maximum 720p
-                        minHeight: 240,
-                        maxHeight: 720
-                    },
-                    switchInterval: 8,          // Less frequent quality switching
-                    bandwidthUpgradeTarget: 0.85, // 85% buffer before upgrading
-                    bandwidthDowngradeTarget: 0.9  // 90% buffer before downgrading
-                },
-                
-                // 🔄 Retry configuration
-                retryParameters: {
-                    maxAttempts: 5,
-                    baseDelay: 1000,
-                    backoffFactor: 1.5,
-                    fuzzFactor: 0.5,
-                    timeout: 10000
-                }
-            },
-            
-            // 🎯 Manifest configuration
-            manifest: {
-                dash: {
-                    ignoreMinBufferTime: true,
-                    autoCorrectDrift: true,
-                    enableForcedSubtitles: false, // Disable to save bandwidth
-                    ignoreEmptyAdaptationSet: true
-                }
-            },
-            
-            // 🔒 DRM configuration (if needed)
-            drm: {
-                retryParameters: {
-                    maxAttempts: 3,
-                    baseDelay: 2000
-                }
-            }
-        });
-
-
-        // Load the stream
-         player.load(streamData.link);
-        
-        // 🎪 Force lower quality initially
-        setTimeout(() => {
-            try {
-                const tracks = player.getVariantTracks();
-                // Prefer lower bitrate tracks (360p-480p)
-                const suitableTracks = tracks.filter(track => 
-                    track.height <= 480 && track.bandwidth <= 1500000
-                );
-                
-                if (suitableTracks.length > 0) {
-                    // Select the best track under 1.5Mbps
-                    const selectedTrack = suitableTracks.reduce((prev, current) => 
-                        (prev.bandwidth > current.bandwidth) ? prev : current
-                    );
-                    player.selectVariantTrack(selectedTrack, true);
-                    console.log(`🎯 Selected optimized track: ${selectedTrack.height}p @ ${Math.round(selectedTrack.bandwidth/1000)}kbps`);
-                }
-            } catch (e) {
-                console.log('Could not force quality selection');
-            }
-        }, 2000);
-
-        showLoader(false);
-        
-        video.play().catch(err => {
-            console.log('Autoplay prevented:', err);
-            unmuteBtn.style.display = 'block';
-        });
-
-    } catch (error) {
-        console.error('Stream loading failed:', error);
-        showLoader(false);
-        channelName.textContent = `${channelName.textContent} - Load Error`;
-    }
-}
-
-
-function testClearKeyDRM() {
-    console.group('🧪 Testing ClearKey DRM');
-    
-    // Test with a known ClearKey encrypted stream
-    // Note: You'll need an actual ClearKey-encrypted stream for this to work
-    const testStream = {
-        name: "TEST: ClearKey DRM",
-        type: "mpd",
-        link: "https://example.com/clearkey-encrypted-stream.mpd", // Replace with actual URL
-        clearkey: "12345678123456781234567812345678:abcdef0123456789abcdef0123456789"
-    };
-    
-    console.log('Testing ClearKey DRM support...');
-    checkClearKeySupport();
-    
-    console.log('Loading ClearKey protected stream...');
-    loadShakaStreamWithClearKey(testStream);
-    
-    console.groupEnd();
-}
-
-// Run this in console: testClearKeyDRM()
-
-
 function checkAllDRMSupport() {
     console.group('🔒 DRM Support Overview');
     
@@ -2904,175 +1597,6 @@ function checkAllDRMSupport() {
     
     console.groupEnd();
 }
-// Run this in console: checkAllDRMSupport()
-
-function checkEnhancedDRMSupport() {
-    console.group('🔒 Enhanced DRM Support Check');
-    
-    if (!navigator.requestMediaKeySystemAccess) {
-        console.error('❌ EME (Encrypted Media Extensions) not supported');
-        console.groupEnd();
-        return { eme: false };
-    }
-    
-    const support = {
-        widevine: false,
-        widevineHw: false,
-        clearkey: false,
-        playready: false
-    };
-    
-    // Test Widevine (Software)
-    const widevineSwConfig = [{
-        initDataTypes: ['cenc'],
-        audioCapabilities: [{
-            contentType: 'audio/mp4; codecs="mp4a.40.2"',
-            robustness: 'SW_SECURE_CRYPTO'
-        }],
-        videoCapabilities: [{
-            contentType: 'video/mp4; codecs="avc1.42E01E"',
-            robustness: 'SW_SECURE_CRYPTO'
-        }],
-        distinctiveIdentifier: 'optional',
-        persistentState: 'optional',
-        sessionTypes: ['temporary']
-    }];
-    
-    // Test Widevine (Hardware)
-    const widevineHwConfig = [{
-        initDataTypes: ['cenc'],
-        audioCapabilities: [{
-            contentType: 'audio/mp4; codecs="mp4a.40.2"',
-            robustness: 'HW_SECURE_CRYPTO'
-        }],
-        videoCapabilities: [{
-            contentType: 'video/mp4; codecs="avc1.42E01E"',
-            robustness: 'HW_SECURE_CRYPTO'
-        }],
-        distinctiveIdentifier: 'optional',
-        persistentState: 'optional',
-        sessionTypes: ['temporary']
-    }];
-    
-    // Test ClearKey with different configurations
-    const clearkeyConfigs = [
-        // Config 1: Basic ClearKey
-        [{
-            initDataTypes: ['cenc'],
-            audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }],
-            videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }]
-        }],
-        // Config 2: With keyids
-        [{
-            initDataTypes: ['keyids'],
-            audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }],
-            videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }]
-        }],
-        // Config 3: Combined initDataTypes
-        [{
-            initDataTypes: ['cenc', 'keyids'],
-            audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }],
-            videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }]
-        }]
-    ];
-    
-    // Test Widevine Software
-    navigator.requestMediaKeySystemAccess('com.widevine.alpha', widevineSwConfig)
-        .then(() => {
-            support.widevine = true;
-            console.log('✅ Widevine SW_SECURE_CRYPTO: Supported');
-        })
-        .catch((e) => {
-            console.log('❌ Widevine SW_SECURE_CRYPTO: Not Supported -', e.message);
-        });
-    
-    // Test Widevine Hardware
-    navigator.requestMediaKeySystemAccess('com.widevine.alpha', widevineHwConfig)
-        .then(() => {
-            support.widevineHw = true;
-            console.log('✅ Widevine HW_SECURE_CRYPTO: Supported');
-        })
-        .catch((e) => {
-            console.log('❌ Widevine HW_SECURE_CRYPTO: Not Supported -', e.message);
-        });
-    
-    // Test ClearKey with multiple configurations
-    let clearkeyTested = 0;
-    const testClearKey = (config, index) => {
-        navigator.requestMediaKeySystemAccess('org.w3.clearkey', config)
-            .then(() => {
-                support.clearkey = true;
-                console.log(`✅ ClearKey: Supported (Config ${index + 1})`);
-            })
-            .catch((e) => {
-                clearkeyTested++;
-                console.log(`❌ ClearKey Config ${index + 1}: Failed -`, e.message);
-                
-                if (clearkeyTested === clearkeyConfigs.length && !support.clearkey) {
-                    console.log('❌ ClearKey: Not supported with any configuration');
-                }
-            });
-    };
-    
-    clearkeyConfigs.forEach((config, index) => {
-        setTimeout(() => testClearKey(config, index), index * 100);
-    });
-    
-    // Test PlayReady
-    navigator.requestMediaKeySystemAccess('com.microsoft.playready', [{
-        initDataTypes: ['cenc'],
-        audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }],
-        videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }]
-    }])
-    .then(() => {
-        support.playready = true;
-        console.log('✅ PlayReady: Supported');
-    })
-    .catch((e) => {
-        console.log('❌ PlayReady: Not Supported -', e.message);
-    });
-    
-    setTimeout(() => {
-        console.log('📊 Final DRM Support Summary:', support);
-        window.drmSupport = support; // Store globally for later use
-        console.groupEnd();
-    }, 1000);
-    
-    return support;
-}
-
-// Run this in console: checkEnhancedDRMSupport()
-
-function checkDashJSVersion() {
-    console.group('🔍 DASH.js Version Check');
-    
-    if (typeof dashjs === 'undefined') {
-        console.error('❌ DASH.js not loaded');
-        console.groupEnd();
-        return;
-    }
-    
-    console.log('✅ DASH.js version:', dashjs.Version || 'Unknown');
-    console.log('✅ MediaSource supported:', dashjs.supportsMediaSource());
-    console.log('✅ Events object:', dashjs.MediaPlayer.events);
-    
-    // Check if events are properly defined
-    const essentialEvents = [
-        'MANIFEST_LOADED',
-        'PLAYBACK_ERROR', 
-        'ERROR',
-        'STREAM_INITIALIZED'
-    ];
-    
-    essentialEvents.forEach(eventName => {
-        const eventValue = dashjs.MediaPlayer.events[eventName];
-        console.log(`Event ${eventName}:`, eventValue ? '✅ Defined' : '❌ Undefined');
-    });
-    
-    console.groupEnd();
-}
-
-// Run this in console: checkDashJSVersion()
 
 
 function parseClearKeyData(clearkeyData) {
@@ -3154,11 +1678,12 @@ function handleDRMFallback(streamData, error) {
             delete fallbackData.clearkey;
             delete fallbackData.drmType;
             
-            setTimeout(() => loadDash(fallbackData.link), 500);
+            setTimeout(() => loadStreamWithSmartDRM(fallbackData.link), 500);
         } else {
             // Other error - try DASH.js
             console.log('🔄 Falling back to DASH.js...');
-            loadDash(streamData.link, streamData.clearkey);
+            loadWithShakaPlayer(streamData.link, streamData.clearkey);
+            (streamData.link, streamData.clearkey);
         }
     } else {
         channelName.textContent = `${channelName.textContent} - Playback Failed`;
@@ -3226,3 +1751,6 @@ function checkCodecSupport() {
     
     console.groupEnd();
 }
+
+// Call this in your DOMContentLoaded
+checkCodecSupport();
