@@ -1,4 +1,5 @@
  // DOM refs
+    const videoPlayer = document.getElementById('videoPlayer');
     const channelList = document.getElementById("channel-list");
     const channelName = document.getElementById("channel-name");
     const videoWrapper = document.getElementById("videoWrapper");
@@ -8,6 +9,8 @@
     
 
     // state
+    let scrollTimeout;
+    let switching = false;
     let currentHls = null;
     let currentDash = null;
     let currentVideo = null;
@@ -93,8 +96,14 @@ async function initializeShakaPlayer() {
 // Load Stream with Shaka Player (DEBUG VERSION)
 // ---------------------------
 async function loadShakaStream(streamData) {
+    
+    if (switching) return;
+    switching = true;
+
     destroyCurrent();
     showLoader(true);
+
+    setTimeout(() => switching = false, 500);
 
     try {
         console.group('🔍 Shaka Player - Loading Stream');
@@ -424,8 +433,14 @@ function checkClearKeySupport() {
 
 
 async function loadStreamWithSmartDRM(streamData) {
+    
+    if (switching) return;
+    switching = true;
+
     destroyCurrent();
     showLoader(true);
+
+    setTimeout(() => switching = false, 500);
 
     try {
         const video = setupVideoElement();
@@ -666,73 +681,123 @@ async function buildDRMConfig(streamData, drmSupport) {
 // ---------------------------
 // Network Speed Detection
 // ---------------------------
-async function detectNetworkSpeed() {
-    console.group('📊 Network Speed Test');
-    
-    const testFile = 'https://httpbin.org/stream-bytes/1000000'; // 1MB test file
+/**
+ * Robust Network Speed Test
+ * Measures approximate download speed (Mbps) for streaming optimization
+ */
+
+async function measureSpeedOnce(testFile = 'https://httpbin.org/stream-bytes/5000000', timeoutMs = 7000) {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     const startTime = Date.now();
-    
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
-        const response = await fetch(testFile);
-        const blob = await response.blob();
+        const response = await fetch(testFile, { signal });
+        clearTimeout(timeout);
+
+        let fileSizeBytes = 0;
+        const contentLength = response.headers.get('Content-Length');
+        if (contentLength) {
+            fileSizeBytes = parseInt(contentLength);
+        } else {
+            const blob = await response.blob();
+            fileSizeBytes = blob.size;
+        }
+
         const endTime = Date.now();
-        
-        const fileSizeMB = blob.size / (1024 * 1024);
         const durationSeconds = (endTime - startTime) / 1000;
+        const fileSizeMB = fileSizeBytes / (1024 * 1024);
         const speedMbps = (fileSizeMB * 8) / durationSeconds;
-        
-        console.log(`📡 Network Speed: ${speedMbps.toFixed(2)} Mbps`);
-        console.log(`⏱️  Download Time: ${durationSeconds.toFixed(2)} seconds`);
-        console.log(`📦 File Size: ${fileSizeMB.toFixed(2)} MB`);
-        
+
         return speedMbps;
-    } catch (error) {
-        console.error('Network test failed:', error);
-        return 3; // Default to 3Mbps assumption
+    } catch (err) {
+        console.warn('Network speed test failed:', err);
+        return 3; // fallback speed
     } finally {
-        console.groupEnd();
+        clearTimeout(timeout);
     }
 }
 
+/**
+ * Detect network speed with multiple runs and average result
+ */
+async function detectNetworkSpeed(runs = 2) {
+    console.group('📊 Network Speed Test');
+    let totalSpeed = 0;
+    for (let i = 0; i < runs; i++) {
+        const speed = await measureSpeedOnce();
+        console.log(`Run ${i + 1}: ${speed.toFixed(2)} Mbps`);
+        totalSpeed += speed;
+    }
+    const avgSpeed = totalSpeed / runs;
+    console.log(`📡 Average Network Speed: ${avgSpeed.toFixed(2)} Mbps`);
+    console.groupEnd();
+    return avgSpeed;
+}
+
+/**
+ * Return optimized streaming config based on network speed
+ */
 function getOptimizedConfigForSpeed(speedMbps) {
     const configs = {
-        // For very slow connections (< 2Mbps)
         slow: {
             bufferingGoal: 10,
             rebufferingGoal: 1,
             bufferBehind: 15,
-            maxBandwidth: 1500000, // 1.5Mbps
+            maxBandwidth: 1500000,
             maxWidth: 640,
             maxHeight: 360
         },
-        // For moderate connections (2-5Mbps)
         moderate: {
             bufferingGoal: 15,
             rebufferingGoal: 1.5,
             bufferBehind: 20,
-            maxBandwidth: 2500000, // 2.5Mbps
+            maxBandwidth: 2500000,
             maxWidth: 854,
             maxHeight: 480
         },
-        // For good connections (> 5Mbps)
         fast: {
             bufferingGoal: 30,
             rebufferingGoal: 2,
             bufferBehind: 30,
-            maxBandwidth: 8000000, // 8Mbps
+            maxBandwidth: 8000000,
             maxWidth: 1920,
             maxHeight: 1080
         }
     };
-    
+
     if (speedMbps < 2) return configs.slow;
     if (speedMbps <= 5) return configs.moderate;
     return configs.fast;
 }
 
+/**
+ * Example usage:
+ */
+(async () => {
+    const speed = await detectNetworkSpeed();
+    const config = getOptimizedConfigForSpeed(speed);
+
+    console.log('✅ Recommended Player Config:', config);
+
+    // Example: Apply config to video / HLS player
+    // currentVideo.width = config.maxWidth;
+    // currentVideo.height = config.maxHeight;
+    // currentHls.config.maxBufferLength = config.bufferingGoal;
+})();
+
+
 function loadShakaStreamWithClearKey(streamData) {
+    
+    if (switching) return;
+    switching = true;
+
     destroyCurrent();
     showLoader(true);
+
+    setTimeout(() => switching = false, 500);
 
     try {
         const video = setupVideoElement();
@@ -1027,7 +1092,7 @@ function setupSimpleLiveDisplay(video) {
         background: #ff0000;
         color: white;
         padding: 8px 16px;
-        border-radius: 20px;
+        border-radius: 50px;
         font-size: 14px;
         font-weight: bold;
         z-index: 1000;
@@ -1169,6 +1234,34 @@ function buildChannelList(channels) {
             div.classList.add("active");
         }
     });
+    channelList.addEventListener('click', (e) => {
+  const channel = e.target.closest('.channel');
+  if (!channel) return;
+
+  // Remove previous active
+  document.querySelectorAll('#channel-list .channel')
+    .forEach(c => c.classList.remove('active'));
+
+  // Activate clicked channel
+  channel.classList.add('active');
+
+  // Mark list as having an active channel
+  channelList.classList.add('has-active');
+  });
+
+  channelList.addEventListener('scroll', () => {
+  // Remove dim while scrolling
+  channelList.classList.remove('has-active');
+
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    // Re-apply dim ONLY if a channel is still active
+    if (channelList.querySelector('.channel.active')) {
+      channelList.classList.add('has-active');
+    }
+  }, 1000); // delay after scroll stops
+  });
+
 }
 
 // ---------------------------
@@ -1445,135 +1538,118 @@ function checkShakaPlayerStatus() {
 // Updated Destroy Function
 // ---------------------------
 function destroyCurrent() {
-    // Destroy Shaka Player instance
+    // --- Destroy Shaka Player ---
     if (currentShaka) {
-        try {
-            currentShaka.destroy();
-            currentShaka = null;
-        } catch(e) {
-            console.error('Error destroying Shaka player:', e);
-        }
+        try { currentShaka.destroy(); } catch(e){ console.error(e); }
+        currentShaka = null;
     }
-    
-    // Existing destruction code
+
+    // --- Destroy HLS ---
     if (currentHls) {
-        try { currentHls.destroy(); } catch(e){}
+        try { 
+            currentHls.stopLoad();   // stop network requests immediately
+            currentHls.destroy(); 
+        } catch(e){}
         currentHls = null;
     }
+
+    // --- Destroy Video Element ---
     if (currentVideo) {
         try { 
             currentVideo.pause();
-            currentVideo.src = ""; 
-            currentVideo.load(); 
-            currentVideo.remove(); 
+            currentVideo.removeAttribute('src'); // stops playback safely
+            currentVideo.load();
+            currentVideo.remove();
         } catch(e){}
         currentVideo = null;
     }
-    
-    // ✅ HIDE CUSTOM CONTROLS
-    if (customControls && customControls.hide) {
-        customControls.hide();
-    }
-    if (currentVideo) {
-        try { 
-            currentVideo.pause();
-            currentVideo.src = ""; 
-            currentVideo.load(); 
-            currentVideo.remove(); 
-        } catch(e){}
-        currentVideo = null;
-    }
+
+    // --- Destroy Iframe (YouTube / other embeds) ---
     const oldIframe = videoWrapper.querySelector('iframe');
     if (oldIframe) oldIframe.remove();
+
+    // --- Hide UI ---
+    if (customControls?.hide) customControls.hide();
     qualitySelector.style.display = "none";
     qualitySelector.innerHTML = "";
     unmuteBtn.style.display = 'none';
 }
 
 
-    function loadYouTube(link) {
-        destroyCurrent();
-        showLoader(true);
-        const iframe = document.createElement("iframe");
-        iframe.src = link;
-        iframe.allow = "autoplay; encrypted-media; fullscreen";
-        iframe.frameBorder = "0";
-        iframe.onload = () => { showLoader(false); };
-        videoWrapper.appendChild(iframe);
-        log('Loaded YouTube iframe');
-    }
+function loadYouTube(link) {
+    if (switching) return;
+    switching = true;
 
-    function loadHls(link) {
-        destroyCurrent();
-        showLoader(true);
+    destroyCurrent();
+    showLoader(true);
 
-        const video = setupVideoElement();
-        videoWrapper.appendChild(video);
-        currentVideo = video;
+    const iframe = document.createElement("iframe");
+    iframe.src = link;
+    iframe.allow = "autoplay; encrypted-media; fullscreen";
+    iframe.frameBorder = "0";
 
-        if (Hls.isSupported()) {
-            const hls = new Hls({
-                maxBufferLength: 30,
-                maxMaxBufferLength: 60,
-                enableWorker: true,
-                lowLatencyMode: false,
-                backBufferLength: 30
-            });
+    iframe.onload = () => {
+        showLoader(false);
+        switching = false;
+    };
 
-            hls.loadSource(link);
-            hls.attachMedia(video);
+    videoWrapper.appendChild(iframe);
+}
 
-            hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-                log("Available levels:", data.levels);
 
-                if (data.levels && data.levels.length > 1) {
-                    populateQualitySelector(hls, data.levels);
-                } else {
-                    qualitySelector.style.display = "none";
-                }
 
-                showLoader(false);
-                video.play().catch(err => {
-                    console.log('Autoplay prevented:', err);
-                    unmuteBtn.style.display = 'block';
-                });
-            });
+function loadHls(link) {
+    if (switching) return;
+    switching = true;
 
-            hls.on(Hls.Events.ERROR, function (event, data) {
-                log("HLS error:", data);
-                if (data.fatal) {
-                    switch (data.type) {
-                        case Hls.ErrorTypes.NETWORK_ERROR:
-                            log("fatal network error encountered, trying to recover");
-                            hls.startLoad();
-                            break;
-                        case Hls.ErrorTypes.MEDIA_ERROR:
-                            log("fatal media error encountered, trying to recover");
-                            hls.recoverMediaError();
-                            break;
-                        default:
-                            hls.destroy();
-                            break;
-                    }
-                }
-            });
+    destroyCurrent();
+    showLoader(true);
 
-            currentHls = hls;
-        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            // Safari native HLS support
-            video.src = link;
-            video.addEventListener("loadedmetadata", () => {
-                video.play().catch(err => {
-                    console.log('Autoplay prevented:', err);
-                    unmuteBtn.style.display = 'block';
-                });
-            });
+    // Create new video element
+    const video = setupVideoElement();
+    currentVideo = video;
+    videoWrapper.appendChild(video);
+
+    if (Hls.isSupported()) {
+        const hls = new Hls({
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            enableWorker: true,
+            backBufferLength: 30
+        });
+        currentHls = hls;
+
+        hls.attachMedia(video);
+        hls.loadSource(link);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+            if (data.levels?.length > 1) populateQualitySelector(hls, data.levels);
+            else qualitySelector.style.display = "none";
+
             showLoader(false);
-        } else {
-            log("HLS not supported in this browser");
+            video.play().catch(() => { unmuteBtn.style.display = 'block'; });
+            switching = false; // unlock after video ready
+        });
+
+        hls.on(Hls.Events.ERROR, (_, data) => {
+            if (data.fatal) hls.destroy();
+        });
+
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        // Safari native HLS
+        video.src = link;
+        video.addEventListener("loadedmetadata", () => {
+            video.play().catch(() => { unmuteBtn.style.display = 'block'; });
             showLoader(false);
-        }
+            switching = false;
+        });
+    } else {
+        log("HLS not supported");
+        showLoader(false);
+        switching = false;
     }
+}
+
 
 
 // ---------------------------
@@ -1630,6 +1706,11 @@ const customControls = {
     handleClick() {
         this.show();
         this.clearHideTimeout();
+         this.hideTimeout = setTimeout(() => {
+            if (!this.isFullscreen()) {
+                this.hide();
+            }
+        }, 3000);
     },
 
     handleFullscreenChange() {
@@ -1745,8 +1826,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // Optimized HLS for Slow Networks with Controls
 // ---------------------------
 function loadHlsOptimized(link) {
+
+    if (switching) return;
+    switching = true;
+
     destroyCurrent();
     showLoader(true);
+
+    setTimeout(() => switching = false, 500);
 
     const video = setupVideoElement();
     videoWrapper.appendChild(video);
@@ -1870,16 +1957,13 @@ function loadHlsOptimized(link) {
 
     function loadDash(link, licenseData = null) {
 
-    // ✅ CORS proxy helper for CloudFront streams
-    function getCorsProxiedUrl(url) {
-        if (url.includes('cloudfront.net')) {
-            console.log('⚠️ CloudFront URL detected, using CORS proxy');
-            return 'https://corsproxy.io/?' + encodeURIComponent(url);
-        }
-        return url;
-    }
+    if (switching) return;
+    switching = true;
+
     destroyCurrent();
     showLoader(true);
+
+    setTimeout(() => switching = false, 500);
 
     const video = setupVideoElement();
     videoWrapper.appendChild(video);
@@ -1919,11 +2003,6 @@ function loadHlsOptimized(link) {
                 logLevel: dashjs.Debug.LOG_LEVEL_ERROR // Reduce verbosity
             }
         });
-
-        // When you initialize:
-         const proxiedLink = getCorsProxiedUrl(link);
-         console.log("DASH: Initializing player with URL:", proxiedLink);
-         dash.initialize(video, proxiedLink, true);
 
         // ✅ FIXED: Safe event registration with null checks
         const safeOn = (eventType, handler) => {
@@ -1965,7 +2044,6 @@ function loadHlsOptimized(link) {
         // Don't show loader, let it try to continue
         return;
     }
-
     
     showLoader(false);
 });
@@ -2104,17 +2182,6 @@ video.addEventListener('loadedmetadata', () => {
     }
 
 
-    // Add after other event handlers
-safeOn(dashjs.MediaPlayer.events.BUFFER_EMPTY, function(e) {
-    console.warn("DASH: Buffer empty for", e.mediaType);
-    showLoader(true);
-});
-
-safeOn(dashjs.MediaPlayer.events.BUFFER_LOADED, function(e) {
-    console.log("DASH: Buffer loaded for", e.mediaType);
-    showLoader(false);
-});
-
 // Detect playback stalls
 let stallTimeout;
 video.addEventListener('waiting', () => {
@@ -2137,18 +2204,32 @@ video.addEventListener('waiting', () => {
     }, 10000);
 });
 
+
 video.addEventListener('playing', () => {
     console.log("DASH: Video playing");
     clearTimeout(stallTimeout);
     showLoader(false);
 });
 
+// Add after other event handlers
+safeOn(dashjs.MediaPlayer.events.BUFFER_EMPTY, function(e) {
+    console.warn("DASH: Buffer empty for", e.mediaType);
+    showLoader(true);
+});
+
+
     // ---------------------------
 // Optimized DASH for Slow Networks
 // ---------------------------
 function loadDashOptimized(link, licenseData = null) {
+    
+    if (switching) return;
+    switching = true;
+
     destroyCurrent();
     showLoader(true);
+
+    setTimeout(() => switching = false, 500);
 
     const video = setupVideoElement();
     videoWrapper.appendChild(video);
@@ -2573,8 +2654,14 @@ function formatClearKeyKeys(keys) {
 
 
 function loadDashWithClearKey(link, clearkeyData) {
+    
+    if (switching) return;
+    switching = true;
+
     destroyCurrent();
     showLoader(true);
+
+    setTimeout(() => switching = false, 500);
 
     const video = setupVideoElement();
     videoWrapper.appendChild(video);
@@ -2647,8 +2734,14 @@ function loadDashWithClearKey(link, clearkeyData) {
 // Optimized for 3Mbps Network
 // ---------------------------
 function loadStreamOptimizedForSlowNetwork(streamData) {
+    
+    if (switching) return;
+    switching = true;
+
     destroyCurrent();
     showLoader(true);
+
+    setTimeout(() => switching = false, 500);
 
     try {
         const video = setupVideoElement();
@@ -3133,6 +3226,3 @@ function checkCodecSupport() {
     
     console.groupEnd();
 }
-
-// Call this in your DOMContentLoaded
-checkCodecSupport();
