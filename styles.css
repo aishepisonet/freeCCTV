@@ -1,4 +1,4 @@
-    /* Reset and base */
+ /* Reset and base */
     * { box-sizing: border-box; }
     body, html {
       margin: 0; padding: 0; height: 100%;
@@ -28,19 +28,47 @@
       max-width: 80%;
       overflow: hidden;
       position: relative;
+      margin-top: 50px;
     }
 
     #channel-name {
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin-bottom: 10px;
-      text-align: center;
-      color: #00bfff;
+      font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-align: center;
+    /* Sleek gradient text */
+    background: linear-gradient(90deg, #00bfff 0%, #00ff9d 50%, #00bfff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 2px 10px rgba(0, 191, 255, 0.3);
+    letter-spacing: 0.5px;
     }
+
+    #channel-name.loading {
+    background: linear-gradient(90deg, 
+        #00bfff 0%, 
+        #00ff9d 25%, 
+        #00bfff 50%, 
+        #00ff9d 75%, 
+        #00bfff 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+    to {
+        background-position: 200% center;
+    }
+}
 
     /* Keep a consistent 16:9 area */
     #videoWrapper {
       width: 100%;
+      height: max-content;
       aspect-ratio: 16 / 9;
       background: black;
       border-radius: 8px;
@@ -63,6 +91,11 @@
     position: relative;
 }
 
+    /* Add this to smooth all text transitions */
+#channel-name, .channel span, footer, #live-indicator, #qualitySelector, #unmuteBtn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .custom-time-display {
     position: absolute;
     bottom: 50px;
@@ -75,7 +108,6 @@
     z-index: 1000;
     display: none;
 }
-
 /* Show custom time display when video has focus */
 video:focus + .custom-time-display,
 .video-wrapper:hover .custom-time-display {
@@ -137,17 +169,35 @@ video:focus + .custom-time-display,
 }
 
 #live-indicator {
-    background: rgba(255, 50, 50, 0.9);
+    background: linear-gradient(135deg, #ff2d2d 0%, #ff6b6b 100%);
     color: white;
-    padding: 6px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: bold;
-    font-family: Arial, sans-serif;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    pointer-events: none;
-    transition: all 0.3s ease;
+    padding: 4px 6px;
+    border-radius: 50px;
+    font-size: 8px;
+    font-weight: 200;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 15px rgba(255, 45, 45, 0.4);
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: liveFade 5s ease-in-out infinite;
+}
+
+@keyframes liveFade {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+  80% {
+    opacity: 1;
+  }
+}
+
+#live-indicator.paused {
+  animation: none;
+  opacity: 0.6;
 }
 
 #fullscreen-btn {
@@ -229,7 +279,8 @@ video:focus {
       background: #222;
       border-radius: 8px;
       overflow-y: auto; /* scroll if content too tall */
-      max-height: calc(100vh - 20px); /* avoid exceeding viewport */
+      max-height: calc(90vh - 20px); /* avoid exceeding viewport */
+      margin-top: 2%;
     }
 
     /* Modern scrollbar for desktop */
@@ -285,6 +336,25 @@ video:focus {
     .channel.active { border-color: #00bfff; transform: scale(1.06); background: #005f9e; }
     .channel.active img { filter: brightness(1); }
 
+    .channel.active span {
+    color: #00ff9d;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+}
+
+.channel span {
+    display: block;
+    font-size: 11px;
+    margin-top: 2px;
+    color: #b0b0b0; /* Softer gray */
+    text-align: center;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.channel:hover span {
+    color: #00bfff;
+}
+
     /* Footer */
     footer {
       flex-shrink: 0;
@@ -306,7 +376,7 @@ video:focus {
       border: 6px solid rgba(255,255,255,0.25);
       border-top-color: #fff;
       border-radius: 50%;
-      animation: spin 0.9s linear infinite;
+      animation: spin 1s linear infinite;
       display: none;
       z-index: 5;
     }
@@ -338,7 +408,9 @@ video:focus {
         width: 100%;
         max-width: 100%;
         margin-bottom: 6px;
+        margin-block-start: 0%;
       }
+      
 
       #videoWrapper {
         width: 100%;
@@ -346,63 +418,55 @@ video:focus {
         aspect-ratio: 16 / 9; /* maintain ratio */
       }
 
-      /* Channel list: horizontal scroll, 6 visible items */
-      #channel-list {
-        flex: 0 0 auto;
-        width: 100%;
-        max-width: 100%;
-        display: flex;
-        gap: 4px;
-        padding: 6px 4px;
-        overflow-x: auto;
-        overflow-y: hidden;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
-      }
+   /* Mobile - Vertical scrolling grid */
+@media (max-width: 900px) {
+  #channel-list {
+    flex: 0 0 auto;
+    width: 75%;
+    max-width: 75%;
+    margin: 0 auto;
+    justify-items: center;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 columns */
+    gap: 6px;
+    padding: 10px;
+    overflow-x: hidden; /* No horizontal scroll */
+    overflow-y: auto; /* Scroll vertically */
+    max-height: 335px; /* Limit height */
+    scroll-snap-type: none; /* Remove snap scrolling */
+  }
 
-      #channel-list .channel {
-        flex: 0 0 auto;
-        width: calc((100% / 6) - 4px); /* 6 items visible */
-        aspect-ratio: 1;
-        scroll-snap-align: start;
-        max-height: 60px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
+  #channel-list .channel {
+    width: 100%;
+    aspect-ratio: 1;
+    max-height: none; /* Remove height restriction */
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
 
-      #channel-list .channel img {
-        width: 90%;
-        height: 90%;
-      }
+  #channel-list .channel img {
+    width: 80%;
+    height: 80%;
+  }
 
-      /* Scrollbar for mobile */
-      #channel-list::-webkit-scrollbar {
-        height: 6px;
-      }
-      #channel-list::-webkit-scrollbar-thumb {
-        background: #00bfff;
-        border-radius: 3px;
-      }
-      #channel-list::-webkit-scrollbar-track {
-        background: #111;
+  /* When one channel is active */
+    #channel-list.has-active .channel {
+  opacity: 0.35; /* dim others */
+}
+
+/* Active channel */
+    #channel-list .channel.active {
+  opacity: 1;
+  transform: scale(1.05); /* subtle focus */
+  z-index: 2;
+}
+
+
+  .channel span {
+    font-size: 10px; /* Slightly smaller text */
+    margin-top: 4px;
+  }
+}
+      #channel-name {
+        font-size: 2rem;
       }
     }
-
-    @media (max-width: 400px) {
-      #channel-list {
-        gap: 3px;
-        padding: 4px 6px;
-      }
-      #channel-list .channel {
-        width: calc((100% / 6) - 3px);
-        max-height: 50px;
-      }
-      .channel img {
-        width: 90%;
-        height: 90%;
-      }
-      #channel-name {
-        font-size: 1rem;
-      }
-
