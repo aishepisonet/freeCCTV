@@ -1689,8 +1689,6 @@ function handleDRMFallback(streamData, error) {
         channelName.textContent = `${channelName.textContent} - Playback Failed`;
     }
 }
-
-
 // ---------------------------
 // Initialize when page loads
 // ---------------------------
@@ -1703,8 +1701,6 @@ document.addEventListener('DOMContentLoaded', function() {
     checkDRMSupport();
     initializeChannels();
 });
-
-
 // ---------------------------
 // Wait for all resources to load
 // ---------------------------
@@ -1718,14 +1714,12 @@ window.addEventListener('load', function() {
         }, 100);
     }
 });
-
 // Also keep your DOMContentLoaded for faster initial load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM loaded, starting initialization...');
     window.channelsInitialized = true;
     initializeChannels();
 });
-
 
 function checkCodecSupport() {
     console.group('🔍 Codec Support Check');
