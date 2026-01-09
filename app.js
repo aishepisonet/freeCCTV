@@ -1,473 +1,1320 @@
-/* Reset and base */
-    * { box-sizing: border-box; }
-    body, html {
-      margin: 0; padding: 0; height: 100%;
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #eee;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
+/**
+ * IPTV Player Application
+ * Cleaned and optimized version
+ * Supports: YouTube, HLS (m3u8), DASH (mpd) with DRM
+ */
+
+// =============================================================================
+// STATE MANAGEMENT
+// =============================================================================
+
+const AppState = {
+    // Player instances
+    currentHls: null,
+    currentShaka: null,
+    currentVideo: null,
+    
+    // UI state
+    switching: false,
+    qualitySelectorSetup: false,
+    
+    // Cached data
+    drmSupport: null,
+    networkSpeed: null,
+    
+    // Timers
+    scrollTimeout: null,
+    hideControlsTimeout: null,
+    
+    // Event cleanup functions
+    eventCleanups: [],
+    
+    /**
+     * Reset all player state
+     */
+    reset() {
+        this.cleanup();
+        this.currentHls = null;
+        this.currentShaka = null;
+        this.currentVideo = null;
+        this.switching = false;
+    },
+    
+    /**
+     * Cleanup all active resources and event listeners
+     */
+    cleanup() {
+        // Destroy Shaka Player
+        if (this.currentShaka) {
+            try {
+                this.currentShaka.destroy();
+            } catch (e) {
+                console.error('Error destroying Shaka:', e);
+            }
+        }
+        
+        // Destroy HLS
+        if (this.currentHls) {
+            try {
+                this.currentHls.stopLoad();
+                this.currentHls.destroy();
+            } catch (e) {
+                console.error('Error destroying HLS:', e);
+            }
+        }
+        
+        // Cleanup video element
+        if (this.currentVideo) {
+            try {
+                this.currentVideo.pause();
+                this.currentVideo.removeAttribute('src');
+                this.currentVideo.load();
+                this.currentVideo.remove();
+            } catch (e) {
+                console.error('Error cleaning video:', e);
+            }
+        }
+        
+        // Remove iframes
+        const oldIframe = DOM.videoWrapper.querySelector('iframe');
+        if (oldIframe) oldIframe.remove();
+        
+        // Clear all registered event listeners
+        this.eventCleanups.forEach(cleanup => {
+            try {
+                cleanup();
+            } catch (e) {
+                console.error('Error during event cleanup:', e);
+            }
+        });
+        this.eventCleanups = [];
+        
+        // Clear timers
+        if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
+        if (this.hideControlsTimeout) clearTimeout(this.hideControlsTimeout);
+    },
+    
+    /**
+     * Register cleanup function for event listeners
+     */
+    registerCleanup(cleanupFn) {
+        this.eventCleanups.push(cleanupFn);
     }
+};
 
-    /* Container holding player and channels */
-    #main-content {
-      flex: 1 1 auto;
-      display: flex;
-      flex-direction: row; /* desktop: player left, channels right */
-      overflow: hidden;
-      padding: 10px;
-      max-width: 1200px;
-      margin: 0 auto;
-      gap: 10px;
+// =============================================================================
+// DOM REFERENCES
+// =============================================================================
+
+const DOM = {
+    channelList: null,
+    channelName: null,
+    videoWrapper: null,
+    loader: null,
+    unmuteBtn: null,
+    qualitySelector: null,
+    
+    init() {
+        this.channelList = document.getElementById("channel-list");
+        this.channelName = document.getElementById("channel-name");
+        this.videoWrapper = document.getElementById("videoWrapper");
+        this.loader = document.getElementById("loader");
+        this.unmuteBtn = document.getElementById("unmuteBtn");
+        this.qualitySelector = document.getElementById("qualitySelector");
     }
+};
 
-    /* Player container */
-    #video-container {
-      flex: 0 0 80%; /* 80% width for player */
-      max-width: 80%;
-      overflow: hidden;
-      position: relative;
-      margin-top: 50px;
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
+const Config = {
+    MAX_FALLBACK_ATTEMPTS: 2,
+    NETWORK_SPEED_TEST_RUNS: 2,
+    AUTOPLAY_DELAY: 500,
+    SCROLL_DEBOUNCE_DELAY: 1000,
+    CONTROLS_HIDE_DELAY: 3000,
+    
+    HLS: {
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        enableWorker: true,
+        backBufferLength: 30
+    },
+    
+    SHAKA: {
+        streaming: {
+            bufferingGoal: 15,
+            rebufferingGoal: 2,
+            bufferBehind: 25,
+            lowLatencyMode: false,
+            retryParameters: {
+                maxAttempts: 5,
+                baseDelay: 1000,
+                backoffFactor: 2
+            }
+        }
     }
+};
 
-    #channel-name {
-      font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 10px;
-    text-align: center;
-    /* Sleek gradient text */
-    background: linear-gradient(90deg, #00bfff 0%, #00ff9d 50%, #00bfff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 2px 10px rgba(0, 191, 255, 0.3);
-    letter-spacing: 0.5px;
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+const Utils = {
+    /**
+     * Show or hide loader
+     */
+    showLoader(show) {
+        DOM.loader.style.display = show ? 'block' : 'none';
+        
+        if (show) {
+            DOM.channelName.classList.add('loading');
+        } else {
+            DOM.channelName.classList.remove('loading');
+        }
+    },
+    
+    /**
+     * Log with prefix
+     */
+    log(...args) {
+        console.log('[IPTV]', ...args);
+    },
+    
+    /**
+     * Format time display
+     */
+    formatTime(seconds) {
+        if (!isFinite(seconds) || seconds > 86400) {
+            return 'LIVE';
+        }
+        
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        
+        if (hrs > 0) {
+            return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    },
+    
+    /**
+     * Format time display with duration
+     */
+    formatTimeDisplay(currentTime, duration) {
+        if (!isFinite(duration) || duration > 86400) {
+            return 'LIVE';
+        }
+        return `${this.formatTime(currentTime)} / ${this.formatTime(duration)}`;
+    },
+    
+    /**
+     * Debounce function
+     */
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    },
+    
+    /**
+     * Get ready state text
+     */
+    getReadyStateText(state) {
+        const states = ['HAVE_NOTHING', 'HAVE_METADATA', 'HAVE_CURRENT_DATA', 'HAVE_FUTURE_DATA', 'HAVE_ENOUGH_DATA'];
+        return states[state] || 'UNKNOWN';
+    },
+    
+    /**
+     * Get network state text
+     */
+    getNetworkStateText(state) {
+        const states = ['NETWORK_EMPTY', 'NETWORK_IDLE', 'NETWORK_LOADING', 'NETWORK_NO_SOURCE'];
+        return states[state] || 'UNKNOWN';
     }
+};
 
-    #channel-name.loading {
-    background: linear-gradient(90deg, 
-        #00bfff 0%, 
-        #00ff9d 25%, 
-        #00bfff 50%, 
-        #00ff9d 75%, 
-        #00bfff 100%);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: shimmer 2s linear infinite;
-}
+// =============================================================================
+// CHANNEL MANAGEMENT
+// =============================================================================
 
-@keyframes shimmer {
-    to {
-        background-position: 200% center;
+const ChannelManager = {
+    fallbackAttempts: 0,
+    
+    /**
+     * Initialize channels with validation and auto-play
+     */
+    init() {
+        try {
+            if (!Array.isArray(channels)) {
+                throw new Error('Channels data is not a valid array');
+            }
+            
+            Utils.log(`📺 Found ${channels.length} channels`);
+            
+            // Validate and clean channels data
+            const validatedChannels = this.validateChannels(channels);
+            
+            this.buildChannelList(validatedChannels);
+            
+            if (validatedChannels.length > 0) {
+                const firstChannel = validatedChannels[0];
+                Utils.log('🎬 Auto-playing first channel:', firstChannel.name);
+                
+                DOM.channelName.textContent = firstChannel.name;
+                
+                setTimeout(() => {
+                    this.loadChannel(firstChannel);
+                }, Config.AUTOPLAY_DELAY);
+            } else {
+                DOM.channelName.textContent = "No channels available";
+                Utils.log('❌ No channels available');
+            }
+            
+        } catch (err) {
+            console.error("Failed to initialize channels:", err);
+            DOM.channelName.textContent = "Failed to load channels";
+            
+            DOM.channelList.innerHTML = `<div style="color: #ff6b6b; text-align: center; padding: 20px;">
+                Error loading channels: ${err.message}
+            </div>`;
+        }
+    },
+    
+    /**
+     * Validate and clean channels data
+     */
+    validateChannels(channels) {
+        if (!Array.isArray(channels)) {
+            console.error('Channels data is not an array');
+            return [];
+        }
+        
+        return channels.map((channel, index) => {
+            const validated = {
+                name: channel.name || `Channel ${index + 1}`,
+                type: channel.type || 'm3u8',
+                link: channel.link || '',
+                logo: channel.logo && channel.logo !== 'undefined' ? channel.logo : '',
+                ...channel
+            };
+            
+            if (!validated.link) {
+                console.warn(`Channel "${validated.name}" has no stream link`);
+            }
+            
+            return validated;
+        });
+    },
+    
+    /**
+     * Build channel list UI
+     */
+    buildChannelList(channels) {
+        DOM.channelList.innerHTML = "";
+        
+        const placeholderSvg = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzMzMyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zNWVtIj5OTyBMT0dPPC90ZXh0Pjwvc3ZnPg==';
+        
+        channels.forEach((channel, index) => {
+            const div = document.createElement("div");
+            div.className = "channel";
+            div.title = channel.name || 'Unnamed Channel';
+            
+            const logoUrl = channel.logo || placeholderSvg;
+            div.innerHTML = `<img src="${logoUrl}" alt="${channel.name}" onerror="this.src='${placeholderSvg}'" loading="lazy">`;
+            
+            div.addEventListener("click", () => {
+                document.querySelectorAll(".channel").forEach(el => el.classList.remove("active"));
+                div.classList.add("active");
+                this.loadChannel(channel);
+            });
+            
+            DOM.channelList.appendChild(div);
+            
+            if (index === 0) {
+                div.classList.add("active");
+            }
+        });
+        
+        // Optimized scroll handling with debounce
+        const handleScroll = Utils.debounce(() => {
+            DOM.channelList.classList.remove('has-active');
+            
+            if (DOM.channelList.querySelector('.channel.active')) {
+                DOM.channelList.classList.add('has-active');
+            }
+        }, Config.SCROLL_DEBOUNCE_DELAY);
+        
+        DOM.channelList.addEventListener('scroll', handleScroll);
+        
+        // Register cleanup
+        AppState.registerCleanup(() => {
+            DOM.channelList.removeEventListener('scroll', handleScroll);
+        });
+    },
+    
+    /**
+     * Load a channel
+     */
+    async loadChannel(channel) {
+        if (!channel || !channel.type) return;
+        
+        DOM.channelName.textContent = channel.name;
+        Utils.showLoader(true);
+        
+        // Reset fallback attempts for new channel
+        this.fallbackAttempts = 0;
+        
+        try {
+            if (channel.type === "youtube") {
+                await PlayerManager.loadYouTube(channel.link);
+            } else if (channel.type === "m3u8") {
+                await PlayerManager.loadHls(channel.link);
+            } else if (channel.type === "mpd") {
+                Utils.log(`Loading MPD with smart DRM: ${channel.name}`);
+                await PlayerManager.loadStreamWithSmartDRM(channel);
+            } else {
+                throw new Error(`Unsupported stream type: ${channel.type}`);
+            }
+        } catch (error) {
+            console.error('Error loading channel:', error);
+            DOM.channelName.textContent = `${channel.name} - Error: ${error.message}`;
+            Utils.showLoader(false);
+            
+            await this.handleLoadErrorFallback(channel, error);
+        }
+    },
+    
+    /**
+     * Handle fallback when loading fails
+     */
+    async handleLoadErrorFallback(channel, error) {
+        if (this.fallbackAttempts >= Config.MAX_FALLBACK_ATTEMPTS) {
+            console.error('Maximum fallback attempts reached');
+            DOM.channelName.textContent = `${channel.name} - Unable to load`;
+            return;
+        }
+        
+        this.fallbackAttempts++;
+        Utils.log(`Attempting fallback ${this.fallbackAttempts} for ${channel.name}`);
+        
+        if (channel.link && channel.link.includes('.mpd')) {
+            Utils.log('🔄 Falling back to Shaka Player...');
+            
+            try {
+                await PlayerManager.loadWithShakaPlayer(channel.link, {
+                    clearKeys: channel.clearKeys || {},
+                    servers: channel.licenseServer ? {
+                        'com.widevine.alpha': channel.licenseServer
+                    } : {}
+                });
+            } catch (shakaError) {
+                console.error('Shaka fallback failed:', shakaError);
+                
+                // Final fallback to HLS
+                const hlsLink = channel.link.replace('.mpd', '.m3u8');
+                if (hlsLink !== channel.link) {
+                    Utils.log('🔄 Trying HLS fallback...');
+                    await PlayerManager.loadHls(hlsLink);
+                } else {
+                    DOM.channelName.textContent = `${channel.name} - Failed to load`;
+                }
+            }
+        }
     }
-}
+};
 
-    /* Keep a consistent 16:9 area */
-    #videoWrapper {
-      width: 100%;
-      height: max-content;
-      aspect-ratio: 16 / 9;
-      background: black;
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
+// =============================================================================
+// PLAYER MANAGEMENT
+// =============================================================================
+
+const PlayerManager = {
+    /**
+     * Setup video element with proper event handlers
+     */
+    setupVideoElement() {
+        const video = document.createElement("video");
+        video.setAttribute("playsinline", "true");
+        video.controls = true;
+        video.autoplay = true;
+        video.muted = false;
+        video.preload = "auto";
+        video.style.width = "100%";
+        video.style.height = "100%";
+        video.className = "shaka-video";
+        
+        // Event listeners for monitoring
+        video.addEventListener('loadstart', () => {
+            Utils.log('🚀 Video load started');
+        });
+        
+        video.addEventListener('progress', () => {
+            if (video.buffered.length > 0) {
+                const bufferedEnd = video.buffered.end(0);
+                const currentTime = video.currentTime;
+                
+                if (video.duration > 86400) {
+                    const bufferAhead = bufferedEnd - currentTime;
+                    Utils.log(`📥 Live buffer: ${bufferAhead.toFixed(1)}s ahead`);
+                } else {
+                    Utils.log(`📥 Buffered: ${Utils.formatTime(bufferedEnd)}`);
+                }
+            }
+        });
+        
+        video.addEventListener('canplay', () => {
+            Utils.log('✅ Video can play');
+        });
+        
+        video.addEventListener('error', (e) => {
+            console.error('🎬 Video error:', {
+                readyState: Utils.getReadyStateText(video.readyState),
+                networkState: Utils.getNetworkStateText(video.networkState),
+                error: video.error,
+                src: video.currentSrc
+            });
+            
+            this.handleVideoError(video);
+        });
+        
+        return video;
+    },
+    
+    /**
+     * Handle video element errors
+     */
+    handleVideoError(video) {
+        let errorMessage = 'Video playback failed';
+        
+        if (video.networkState === video.NETWORK_NO_SOURCE) {
+            errorMessage = 'No video source found';
+        } else if (video.readyState === video.HAVE_NOTHING) {
+            errorMessage = 'Video failed to load';
+        } else if (video.error) {
+            const codes = {
+                1: 'Video loading aborted',
+                2: 'Network error',
+                3: 'Video decoding error',
+                4: 'Video format not supported'
+            };
+            errorMessage = codes[video.error.code] || 'Video error';
+        }
+        
+        DOM.channelName.textContent = `${DOM.channelName.textContent} - ${errorMessage}`;
+        Utils.showLoader(false);
+    },
+    
+    /**
+     * Load YouTube stream
+     */
+    async loadYouTube(link) {
+        if (AppState.switching) return;
+        AppState.switching = true;
+        
+        AppState.cleanup();
+        Utils.showLoader(true);
+        
+        const iframe = document.createElement("iframe");
+        iframe.src = link;
+        iframe.allow = "autoplay; encrypted-media; fullscreen";
+        iframe.frameBorder = "0";
+        
+        iframe.onload = () => {
+            Utils.showLoader(false);
+            AppState.switching = false;
+        };
+        
+        iframe.onerror = () => {
+            Utils.showLoader(false);
+            AppState.switching = false;
+            DOM.channelName.textContent = `${DOM.channelName.textContent} - Failed to load`;
+        };
+        
+        DOM.videoWrapper.appendChild(iframe);
+    },
+    
+    /**
+     * Load HLS stream
+     */
+    async loadHls(link) {
+        if (AppState.switching) return;
+        AppState.switching = true;
+        
+        AppState.cleanup();
+        Utils.showLoader(true);
+        
+        const video = this.setupVideoElement();
+        AppState.currentVideo = video;
+        DOM.videoWrapper.appendChild(video);
+        
+        if (Hls.isSupported()) {
+            const hls = new Hls(Config.HLS);
+            AppState.currentHls = hls;
+            
+            hls.attachMedia(video);
+            hls.loadSource(link);
+            
+            hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+                if (data.levels?.length > 1) {
+                    QualityManager.populateSelector(hls, data.levels);
+                } else {
+                    DOM.qualitySelector.style.display = "none";
+                }
+                
+                Utils.showLoader(false);
+                video.play().catch(() => {
+                    DOM.unmuteBtn.style.display = 'block';
+                });
+                AppState.switching = false;
+            });
+            
+            hls.on(Hls.Events.ERROR, (_, data) => {
+                if (data.fatal) {
+                    console.error('Fatal HLS error:', data);
+                    hls.destroy();
+                    AppState.switching = false;
+                }
+            });
+            
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            // Safari native HLS
+            video.src = link;
+            video.addEventListener("loadedmetadata", () => {
+                video.play().catch(() => {
+                    DOM.unmuteBtn.style.display = 'block';
+                });
+                Utils.showLoader(false);
+                AppState.switching = false;
+            });
+        } else {
+            Utils.log("HLS not supported");
+            Utils.showLoader(false);
+            AppState.switching = false;
+        }
+    },
+    
+    /**
+     * Load DASH stream with smart DRM
+     */
+    async loadStreamWithSmartDRM(streamData) {
+        if (AppState.switching) return;
+        AppState.switching = true;
+        
+        AppState.cleanup();
+        Utils.showLoader(true);
+        
+        setTimeout(() => { AppState.switching = false; }, 500);
+        
+        try {
+            const video = this.setupVideoElement();
+            DOM.videoWrapper.appendChild(video);
+            AppState.currentVideo = video;
+            
+            shaka.polyfill.installAll();
+            const player = new shaka.Player();
+            await player.attach(video);
+            AppState.currentShaka = player;
+            
+            // Get or detect DRM support
+            const drmSupport = AppState.drmSupport || await DRMManager.detectSupport();
+            AppState.drmSupport = drmSupport;
+            
+            Utils.log('🎯 Smart DRM loading with support:', drmSupport);
+            
+            // Configure DRM
+            const drmConfig = await DRMManager.buildConfig(streamData, drmSupport);
+            
+            if (Object.keys(drmConfig.servers).length > 0 || Object.keys(drmConfig.clearKeys || {}).length > 0) {
+                player.configure({ drm: drmConfig });
+                Utils.log('🔒 DRM configured:', drmConfig);
+            } else {
+                Utils.log('ℹ️ No DRM configuration - playing without DRM');
+            }
+            
+            // Configure streaming settings
+            player.configure(Config.SHAKA);
+            
+            // Load stream
+            await player.load(streamData.link);
+            Utils.log('✅ Stream loaded successfully');
+            
+            Utils.showLoader(false);
+            
+            // Attempt autoplay
+            try {
+                await video.play();
+                Utils.log('▶️ Playback started');
+            } catch (err) {
+                Utils.log('Autoplay prevented:', err.message);
+                DOM.unmuteBtn.style.display = 'block';
+            }
+            
+            // Setup live stream controls if applicable
+            if (player.isLive()) {
+                ControlsManager.setupLiveDisplay(video, player);
+            }
+            
+        } catch (error) {
+            console.error('💥 Smart DRM load failed:', error);
+            DRMManager.handleFallback(streamData, error);
+        }
+    },
+    
+    /**
+     * Load with Shaka Player (fallback)
+     */
+    async loadWithShakaPlayer(url, licenseData = null) {
+        Utils.log('🔧 Loading with Shaka Player fallback:', url);
+        
+        if (!shaka.Player.isBrowserSupported()) {
+            throw new Error('Shaka Player not supported in this browser');
+        }
+        
+        try {
+            const video = AppState.currentVideo || this.setupVideoElement();
+            if (!AppState.currentVideo) {
+                DOM.videoWrapper.appendChild(video);
+                AppState.currentVideo = video;
+            }
+            
+            const player = new shaka.Player();
+            await player.attach(video);
+            AppState.currentShaka = player;
+            
+            if (licenseData) {
+                player.configure({
+                    drm: {
+                        clearKeys: licenseData.clearKeys || {},
+                        servers: licenseData.servers || {}
+                    }
+                });
+            }
+            
+            player.configure(Config.SHAKA);
+            
+            await player.load(url);
+            Utils.log('✅ Shaka fallback loaded');
+            
+            Utils.showLoader(false);
+            await video.play().catch(e => Utils.log('Autoplay prevented:', e.message));
+            
+            return player;
+            
+        } catch (error) {
+            console.error('❌ Shaka fallback failed:', error);
+            throw error;
+        }
     }
+};
 
-    #videoWrapper iframe,
-    #videoWrapper video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      background: black;
-      display: block;
+// =============================================================================
+// DRM MANAGEMENT
+// =============================================================================
+
+const DRMManager = {
+    /**
+     * Detect DRM support
+     */
+    async detectSupport() {
+        return new Promise((resolve) => {
+            const support = {
+                widevine: false,
+                clearkey: false,
+                playready: false
+            };
+            
+            const widevineConfig = [{
+                initDataTypes: ['cenc'],
+                audioCapabilities: [{
+                    contentType: 'audio/mp4; codecs="mp4a.40.2"',
+                    robustness: 'SW_SECURE_CRYPTO'
+                }],
+                videoCapabilities: [{
+                    contentType: 'video/mp4; codecs="avc1.42E01E"',
+                    robustness: 'SW_SECURE_CRYPTO'
+                }],
+                distinctiveIdentifier: 'optional',
+                persistentState: 'optional',
+                sessionTypes: ['temporary']
+            }];
+            
+            const clearkeyConfig = [{
+                initDataTypes: ['cenc'],
+                audioCapabilities: [{
+                    contentType: 'audio/mp4; codecs="mp4a.40.2"',
+                    robustness: ''
+                }],
+                videoCapabilities: [{
+                    contentType: 'video/mp4; codecs="avc1.42E01E"',
+                    robustness: ''
+                }],
+                distinctiveIdentifier: 'not-allowed',
+                persistentState: 'not-allowed',
+                sessionTypes: ['temporary']
+            }];
+            
+            // Test Widevine
+            navigator.requestMediaKeySystemAccess('com.widevine.alpha', widevineConfig)
+                .then(() => {
+                    support.widevine = true;
+                    Utils.log('✅ Widevine supported');
+                })
+                .catch(() => {
+                    support.widevine = false;
+                    Utils.log('❌ Widevine not supported');
+                })
+                .finally(() => {
+                    // Test ClearKey
+                    navigator.requestMediaKeySystemAccess('org.w3.clearkey', clearkeyConfig)
+                        .then(() => {
+                            support.clearkey = true;
+                            Utils.log('✅ ClearKey supported');
+                        })
+                        .catch(() => {
+                            support.clearkey = false;
+                            Utils.log('❌ ClearKey not supported');
+                        })
+                        .finally(() => resolve(support));
+                });
+        });
+    },
+    
+    /**
+     * Build DRM configuration
+     */
+    async buildConfig(streamData, drmSupport) {
+        const drmConfig = {
+            servers: {},
+            advanced: {},
+            clearKeys: {}
+        };
+        
+        // Priority 1: Use specified DRM type if supported
+        if (streamData.drmType === 'widevine' && streamData.licenseServer && drmSupport.widevine) {
+            drmConfig.servers['com.widevine.alpha'] = streamData.licenseServer;
+            drmConfig.advanced['com.widevine.alpha'] = {
+                videoRobustness: "SW_SECURE_CRYPTO",
+                audioRobustness: "SW_SECURE_CRYPTO"
+            };
+        } else if (streamData.drmType === 'clearkey' && streamData.clearkey && drmSupport.clearkey) {
+            drmConfig.servers['org.w3.clearkey'] = 'data:application/json;base64,eyJrZXlzIjpbXSwidHlwZSI6InRlbXBvcmFyeSJ9';
+            drmConfig.clearKeys = this.parseClearKeyData(streamData.clearkey);
+        }
+        // Priority 2: Auto-detect
+        else if (streamData.licenseServer && drmSupport.widevine) {
+            drmConfig.servers['com.widevine.alpha'] = streamData.licenseServer;
+            drmConfig.advanced['com.widevine.alpha'] = {
+                videoRobustness: "SW_SECURE_CRYPTO",
+                audioRobustness: "SW_SECURE_CRYPTO"
+            };
+        } else if (streamData.clearkey && drmSupport.clearkey) {
+            drmConfig.servers['org.w3.clearkey'] = 'data:application/json;base64,eyJrZXlzIjpbXSwidHlwZSI6InRlbXBvcmFyeSJ9';
+            drmConfig.clearKeys = this.parseClearKeyData(streamData.clearkey);
+        }
+        
+        return drmConfig;
+    },
+    
+    /**
+     * Parse ClearKey data
+     */
+    parseClearKeyData(clearkeyData) {
+        if (typeof clearkeyData === 'string') {
+            const [keyId, keyValue] = clearkeyData.split(':');
+            return keyId && keyValue ? { [keyId]: keyValue } : {};
+        } else if (Array.isArray(clearkeyData)) {
+            const keys = {};
+            clearkeyData.forEach(key => {
+                if (key.keyId && key.key) keys[key.keyId] = key.key;
+            });
+            return keys;
+        } else if (typeof clearkeyData === 'object') {
+            return { ...clearkeyData };
+        }
+        return {};
+    },
+    
+    /**
+     * Handle DRM fallback
+     */
+    handleFallback(streamData, error) {
+        Utils.log('🔄 Handling DRM fallback...');
+        Utils.showLoader(false);
+        
+        if (streamData.link.includes('.mpd')) {
+            if (error.code === 4032 || error.code === 6001) {
+                // DRM license error - try without DRM
+                Utils.log('🔓 Trying without DRM...');
+                const fallbackData = { ...streamData };
+                delete fallbackData.licenseServer;
+                delete fallbackData.clearkey;
+                delete fallbackData.drmType;
+                
+                setTimeout(() => PlayerManager.loadStreamWithSmartDRM(fallbackData), 500);
+            } else {
+                // Try Shaka fallback
+                Utils.log('🔄 Trying Shaka fallback...');
+                PlayerManager.loadWithShakaPlayer(streamData.link, {
+                    clearKeys: streamData.clearKeys || {}
+                });
+            }
+        } else {
+            DOM.channelName.textContent = `${DOM.channelName.textContent} - Playback Failed`;
+        }
     }
+};
 
-    /* Hide native time display and create custom one */
-#videoWrapper {
-    position: relative;
-}
+// =============================================================================
+// QUALITY MANAGEMENT
+// =============================================================================
 
-    /* Add this to smooth all text transitions */
-#channel-name, .channel span, footer, #live-indicator, #qualitySelector, #unmuteBtn {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.custom-time-display {
-    position: absolute;
-    bottom: 50px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 14px;
-    z-index: 1000;
-    display: none;
-}
-/* Show custom time display when video has focus */
-video:focus + .custom-time-display,
-.video-wrapper:hover .custom-time-display {
-    display: block;
-}
-/* Add this to your CSS */
-#videoWrapper {
-    position: relative;
-}
-
-/* Hide native controls time display for live streams */
-.shaka-video::-webkit-media-controls-timeline,
-.shaka-video::-webkit-media-controls-current-time-display,
-.shaka-video::-webkit-media-controls-time-remaining-display {
-    display: none !important;
-}
-
-/* For Firefox and other browsers */
-.shaka-video::-moz-range-track {
-    display: none;
-}
-
-/* Custom controls styling */
-#custom-time-display {
-    font-family: 'Arial', sans-serif;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-}
-
-#live-stream-controls {
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-/* Fullscreen styles 
-#videoWrapper:fullscreen {
-    width: 100vw;
-    height: 100vh;
-    background: #000;
-} */
-
-#videoWrapper:fullscreen video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-/* Enhanced Controls Styling for DASH */
-#custom-controls {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    z-index: 1000;
-    pointer-events: none;
-    transition: all 0.3s ease;
-    opacity: 20;
-}
-
-#live-indicator {
-    background: linear-gradient(135deg, #ff2d2d 0%, #ff6b6b 100%);
-    color: white;
-    padding: 4px 6px;
-    border-radius: 50px;
-    font-size: 8px;
-    font-weight: 200;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-    box-shadow: 0 4px 15px rgba(255, 45, 45, 0.4);
-    letter-spacing: 0.5px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    animation: liveFade 5s ease-in-out infinite;
-}
-
-@keyframes liveFade {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
-  80% {
-    opacity: 1;
-  }
-}
-
-#live-indicator.paused {
-  animation: none;
-  opacity: 0.6;
-}
-
-#fullscreen-btn {
-    background: rgba(0, 0, 0, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(10px);
-    pointer-events: auto;
-    transition: all 0.2s ease;
-}
-
-#fullscreen-btn:hover {
-    background: rgba(0, 0, 0, 0.9);
-    border-color: rgba(255, 255, 255, 0.6);
-    transform: scale(1.05);
-}
-
-/* Fullscreen enhancements */
-#videoWrapper:fullscreen {
-    width: 100vw;
-    height: 100vh;
-    background: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#videoWrapper:fullscreen video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-#videoWrapper:fullscreen #custom-controls {
-    bottom: 40px;
-    right: 40px;
-    opacity: 1 !important;
-}
-
-/* Video focus styles for keyboard controls */
-video:focus {
-    outline: 2px solid #fff;
-    outline-offset: 2px;
-}
-
-
-    /* Quality selector */
-    #qualitySelector {
-      position: absolute;
-      right: 12px;
-      top: 12px;
-      z-index: 8;
-      background: rgba(0,0,0,0.6);
-      color: #fff;
-      border: 1px solid #666;
-      border-radius: 6px;
-      padding: 4px;
-      font-size: 0.9rem;
-      display: none !important;
-
+const QualityManager = {
+    /**
+     * Populate quality selector for HLS
+     */
+    populateSelector(hls, levels) {
+        DOM.qualitySelector.innerHTML = "";
+        
+        const autoOption = document.createElement("option");
+        autoOption.value = "auto";
+        autoOption.textContent = "Auto";
+        DOM.qualitySelector.appendChild(autoOption);
+        
+        levels.forEach((level, i) => {
+            const opt = document.createElement("option");
+            opt.value = i;
+            const height = level.height || 'Unknown';
+            const bitrate = level.bitrate ? ` (${Math.round(level.bitrate / 1000)}kbps)` : '';
+            opt.textContent = `${height}p${bitrate}`;
+            DOM.qualitySelector.appendChild(opt);
+        });
+        
+        DOM.qualitySelector.style.display = "inline-block";
+        
+        DOM.qualitySelector.onchange = function() {
+            if (this.value === "auto") {
+                hls.currentLevel = -1;
+            } else {
+                hls.currentLevel = parseInt(this.value);
+            }
+        };
     }
+};
 
-    /* Channel list container - desktop */
-    #channel-list {
-      flex: 0 0 20%; /* 20% width for channels */
-      max-width: 20%;
-      display: grid;
-      grid-template-columns: 1fr 1fr; /* 2 columns desktop */
-      gap: 6px; /* desktop gap between items */
-      padding: 10px;
-      background: #222;
-      border-radius: 8px;
-      overflow-y: auto; /* scroll if content too tall */
-      max-height: calc(90vh - 20px); /* avoid exceeding viewport */
-      margin-top: 2%;
-    }
+// =============================================================================
+// CONTROLS MANAGEMENT
+// =============================================================================
 
-    /* Modern scrollbar for desktop */
-    #channel-list::-webkit-scrollbar {
-      width: 8px;
-    }
-    #channel-list::-webkit-scrollbar-track {
-      background: #111;
-      border-radius: 4px;
-    }
-    #channel-list::-webkit-scrollbar-thumb {
-      background: #00bfff;
-      border-radius: 4px;
-    }
-    #channel-list {
-      scrollbar-width: thin;
-      scrollbar-color: #00bfff #111;
-    }
+const ControlsManager = {
+    controls: null,
+    liveIndicator: null,
+    fullscreenBtn: null,
+    
+    /**
+     * Initialize custom controls
+     */
+    init() {
+        if (!document.getElementById('custom-controls')) {
+            this.createControls();
+        }
+        
+        this.controls = document.getElementById('custom-controls');
+        this.liveIndicator = document.getElementById('live-indicator');
+        this.fullscreenBtn = document.getElementById('fullscreen-btn');
+        
+        this.setupEventListeners();
+    },
+    
+    /**
+     * Create custom controls HTML
+     */
+    createControls() {
+        const controlsHTML = `
+            <div id="custom-controls" style="display: none;">
+                <div id="live-indicator">● LIVE</div>
+                <button id="fullscreen-btn" title="Toggle Fullscreen (F)">⛶</button>
+            </div>
+        `;
+        DOM.videoWrapper.insertAdjacentHTML('beforeend', controlsHTML);
+    },
+    
+    /**
+     * Setup event listeners
+     */
+    setupEventListeners() {
+        // Fullscreen button
+        this.fullscreenBtn.addEventListener('click', () => {
+            this.toggleFullscreen();
+        });
+        
+        // Fullscreen change events
+        const handleFullscreenChange = () => this.handleFullscreenChange();
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        
+        // Mouse interaction
+        const handleMouseMove = () => this.handleMouseMove();
+        DOM.videoWrapper.addEventListener('mousemove', handleMouseMove);
+        
+        // Register cleanup
+        AppState.registerCleanup(() => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            DOM.videoWrapper.removeEventListener('mousemove', handleMouseMove);
+        });
+    },
+    
+    /**
+     * Handle mouse movement
+     */
+    handleMouseMove() {
+        this.show();
+        
+        if (AppState.hideControlsTimeout) {
+            clearTimeout(AppState.hideControlsTimeout);
+        }
+        
+        AppState.hideControlsTimeout = setTimeout(() => {
+            if (!this.isFullscreen()) {
+                this.hide();
+            }
+        }, Config.CONTROLS_HIDE_DELAY);
+    },
+    
+    /**
+     * Handle fullscreen changes
+     */
+    /**handleFullscreenChange() {
+        if (this.isFullscreen()) {
+            this.fullscreenBtn.innerHTML = '⧉';
+            this.fullscreenBtn.title = 'Exit Fullscreen (F)';
+            this.show();
+        } else {
+            this.fullscreenBtn.innerHTML = '⛶';
+            this.fullscreenBtn.title = 'Enter Fullscreen (F)';
+            this.hide();
+        }
+    },
+  */
+    
 
-    /* Individual channels - logo fills container */
-    .channel {
-      width: 100%;
-      aspect-ratio: 1; /* ensures square container */
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      border-radius: 8px;
-      border: 2px solid transparent;
-      background: #333;
-      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    /**
+     * Show controls
+     */
+    show() {
+        if (this.controls) {
+            this.controls.style.display = 'flex';
+            this.controls.style.opacity = '1';
+        }
+    },
+    
+    /**
+     * Hide controls
+     */
+    hide() {
+        if (this.controls && !this.isFullscreen()) {
+            this.controls.style.opacity = '0';
+            setTimeout(() => {
+                if (this.controls && this.controls.style.opacity === '0') {
+                    this.controls.style.display = 'none';
+                }
+            }, 300);
+        }
+    },
+    
+    /**
+     * Toggle fullscreen
+     */
+    toggleFullscreen() {
+        if (!this.isFullscreen()) {
+            this.enterFullscreen();
+        } else {
+            this.exitFullscreen();
+        }
+    },
+    
+    /**
+     * Enter fullscreen
+     */
+    enterFullscreen() {
+        const element = DOM.videoWrapper;
+        if (element.requestFullscreen) {
+            element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+            element.webkitRequestFullscreen();
+        } else if (element.msRequestFullscreen) {
+            element.msRequestFullscreen();
+        }
+    },
+    
+    /**
+     * Exit fullscreen
+     */
+    exitFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    },
+    
+    /**
+     * Check if in fullscreen
+     */
+    isFullscreen() {
+        return !!(document.fullscreenElement ||
+                 document.webkitFullscreenElement ||
+                 document.msFullscreenElement);
+    },
+    
+    /**
+     * Setup live stream display
+     */
+    setupLiveDisplay(video, player) {
+        const liveDiv = document.createElement('div');
+        liveDiv.id = 'live-time-display';
+   /**      liveDiv.style.cssText = `
+            position: absolute;
+            bottom: 60px;
+            right: 15px;
+            background: rgba(255, 50, 50, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 1000;
+            pointer-events: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        `;
+    */
+        liveDiv.textContent = '● LIVE';
+        
+        DOM.videoWrapper.appendChild(liveDiv);
+        
+        let lastUpdateTime = Date.now();
+        
+        const updateDisplay = () => {
+            if (!player || !video) return;
+            
+            try {
+                const now = Date.now();
+                const timeSinceUpdate = now - lastUpdateTime;
+                
+                if (timeSinceUpdate > 2000) {
+                    liveDiv.textContent = `LIVE -${Math.round(timeSinceUpdate / 1000)}s`;
+                    liveDiv.style.background = 'rgba(255, 165, 0, 0.9)';
+                } else {
+                    liveDiv.textContent = '● LIVE';
+                    liveDiv.style.background = 'rgba(255, 50, 50, 0.9)';
+                }
+                
+                lastUpdateTime = now;
+            } catch (error) {
+                liveDiv.textContent = '● LIVE';
+            }
+        };
+        
+        const interval = setInterval(updateDisplay, 1000);
+        video.addEventListener('timeupdate', () => { lastUpdateTime = Date.now(); });
+        
+        // Cleanup
+        const cleanup = () => {
+            clearInterval(interval);
+            if (liveDiv.parentNode) liveDiv.remove();
+        };
+        
+        video.addEventListener('emptied', cleanup);
+        video.addEventListener('error', cleanup);
+        
+        AppState.registerCleanup(cleanup);
+        
+        return cleanup;
     }
+};
 
-    .channel img {
-      width: 90%;      /* fill most of square container */
-      height: 90%;
-      object-fit: contain; /* keep logo ratio */
-      border-radius: 6px;
-      filter: brightness(0.85);
-      transition: filter 0.3s ease;
+// =============================================================================
+// NETWORK DIAGNOSTICS (Optional - Call manually)
+// =============================================================================
+
+const NetworkDiagnostics = {
+    /**
+     * Measure network speed once
+     */
+    async measureSpeedOnce(testFile = 'https://httpbin.org/stream-bytes/5000000', timeoutMs = 7000) {
+        const controller = new AbortController();
+        const signal = controller.signal;
+        
+        const startTime = Date.now();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+        
+        try {
+            const response = await fetch(testFile, { signal });
+            clearTimeout(timeout);
+            
+            let fileSizeBytes = 0;
+            const contentLength = response.headers.get('Content-Length');
+            
+            if (contentLength) {
+                fileSizeBytes = parseInt(contentLength);
+            } else {
+                const blob = await response.blob();
+                fileSizeBytes = blob.size;
+            }
+            
+            const endTime = Date.now();
+            const durationSeconds = (endTime - startTime) / 1000;
+            const fileSizeMB = fileSizeBytes / (1024 * 1024);
+            const speedMbps = (fileSizeMB * 8) / durationSeconds;
+            
+            return speedMbps;
+        } catch (err) {
+            console.warn('Network speed test failed:', err);
+            return 3; // fallback speed
+        } finally {
+            clearTimeout(timeout);
+        }
+    },
+    
+    /**
+     * Detect network speed with multiple runs
+     */
+    async detectNetworkSpeed(runs = 2) {
+        console.group('📊 Network Speed Test');
+        let totalSpeed = 0;
+        
+        for (let i = 0; i < runs; i++) {
+            const speed = await this.measureSpeedOnce();
+            console.log(`Run ${i + 1}: ${speed.toFixed(2)} Mbps`);
+            totalSpeed += speed;
+        }
+        
+        const avgSpeed = totalSpeed / runs;
+        console.log(`📡 Average: ${avgSpeed.toFixed(2)} Mbps`);
+        console.groupEnd();
+        
+        AppState.networkSpeed = avgSpeed;
+        return avgSpeed;
+    },
+    
+    /**
+     * Get optimized config based on speed
+     */
+    getOptimizedConfig(speedMbps) {
+        const configs = {
+            slow: {
+                bufferingGoal: 10,
+                rebufferingGoal: 1,
+                bufferBehind: 15,
+                maxBandwidth: 1500000,
+                maxResolution: '360p'
+            },
+            moderate: {
+                bufferingGoal: 15,
+                rebufferingGoal: 1.5,
+                bufferBehind: 20,
+                maxBandwidth: 2500000,
+                maxResolution: '480p'
+            },
+            fast: {
+                bufferingGoal: 30,
+                rebufferingGoal: 2,
+                bufferBehind: 30,
+                maxBandwidth: 8000000,
+                maxResolution: '1080p'
+            }
+        };
+        
+        if (speedMbps < 2) return configs.slow;
+        if (speedMbps <= 5) return configs.moderate;
+        return configs.fast;
     }
+};
 
-    .channel span {
-      display: block;
-      font-size: 11px;
-      margin-top: 2px;
-      color: #ddd;
-      text-align: center;
-    }
+// =============================================================================
+// INITIALIZATION
+// =============================================================================
 
-    .channel:hover img { filter: brightness(1); }
-    .channel.active { border-color: #00bfff; transform: scale(1.06); background: #005f9e; }
-    .channel.active img { filter: brightness(1); }
-
-    .channel.active span {
-    color: #00ff9d;
-    font-weight: bold;
-    text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+/**
+ * Initialize the application
+ */
+function initApp() {
+    Utils.log('🚀 Initializing IPTV Player...');
+    
+    // Initialize DOM references
+    DOM.init();
+    
+    // Check library availability
+    Utils.log('HLS.js available:', typeof Hls !== 'undefined');
+    Utils.log('Shaka Player available:', typeof shaka !== 'undefined');
+    
+    // Initialize controls
+    ControlsManager.init();
+    
+    // Initialize channels
+    ChannelManager.init();
+    
+    Utils.log('✅ Initialization complete');
 }
 
-.channel span {
-    display: block;
-    font-size: 11px;
-    margin-top: 2px;
-    color: #b0b0b0; /* Softer gray */
-    text-align: center;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
 }
 
-.channel:hover span {
-    color: #00bfff;
-}
-
-    /* Footer */
-    footer {
-      flex-shrink: 0;
-      background: #111;
-      color: #666;
-      font-size: 0.85rem;
-      text-align: center;
-      padding: 12px 15px;
-      border-top: 1px solid #222;
-      user-select: none;
+// Fallback initialization on full page load
+window.addEventListener('load', function() {
+    if (!window.appInitialized) {
+        Utils.log('📄 Fallback initialization on window.load');
+        window.appInitialized = true;
+        initApp();
     }
+});
 
-    /* Loader 
-    .loader {
-      position: absolute;
-      left: 50%; top: 50%;
-      width: 54px; height: 54px;
-      margin-left: -27px; margin-top: -27px;
-      border: 6px solid rgba(255,255,255,0.25);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      display: none;
-      z-index: 5;
-    } */
-   
-    @keyframes spin { to { transform: rotate(360deg); } }
+// =============================================================================
+// GLOBAL API (for console debugging)
+// =============================================================================
 
-    /* #unmuteBtn {
-      position: absolute;
-      left: 12px; bottom: 12px;
-      z-index: 6;
-      background: rgba(0,0,0,0.6);
-      color: #fff;
-      border: 1px solid #666;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      display: none;
-      cursor: pointer;
-    } */
-
-    /* Responsive: tablets and mobiles */
-    @media (max-width: 900px) {
-      #main-content {
-        flex-direction: column; /* stack vertically */
-      }
-
-      /* Player full width */
-      #video-container {
-        flex: 0 0 auto;
-        width: 100%;
-        max-width: 100%;
-        margin-bottom: 6px;
-        margin-block-start: 0%;
-      }
-      
-
-      #videoWrapper {
-        width: 100%;
-        max-width: 100%;
-        aspect-ratio: 16 / 9; /* maintain ratio */
-      }
-
-   /* Mobile - Vertical scrolling grid */
-@media (max-width: 900px) {
-  #channel-list {
-    flex: 0 0 auto;
-    width: 75%;
-    max-width: 75%;
-    margin: 0 auto;
-    justify-items: center;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 columns */
-    gap: 6px;
-    padding: 10px;
-    overflow-x: hidden; /* No horizontal scroll */
-    overflow-y: auto; /* Scroll vertically */
-    max-height: 335px; /* Limit height */
-    scroll-snap-type: none; /* Remove snap scrolling */
-  }
-
-  #channel-list .channel {
-    width: 100%;
-    aspect-ratio: 1;
-    max-height: none; /* Remove height restriction */
-    transition: opacity 0.3s ease, transform 0.3s ease;
-  }
-
-  #channel-list .channel img {
-    width: 80%;
-    height: 80%;
-  }
-
-  /* When one channel is active */
-    #channel-list.has-active .channel {
-  opacity: 0.35; /* dim others */
-}
-
-/* Active channel */
-    #channel-list .channel.active {
-  opacity: 1;
-  transform: scale(1.05); /* subtle focus */
-  z-index: 2;
-}
-
-
-  .channel span {
-    font-size: 10px; /* Slightly smaller text */
-    margin-top: 4px;
-  }
-}
-      #channel-name {
-        font-size: 1.5rem;
-      }
+window.IPTVPlayer = {
+    // Expose key modules for debugging
+    state: AppState,
+    channels: ChannelManager,
+    player: PlayerManager,
+    drm: DRMManager,
+    network: NetworkDiagnostics,
+    utils: Utils,
+    
+    // Helper functions
+    async testNetworkSpeed() {
+        return await NetworkDiagnostics.detectNetworkSpeed();
+    },
+    
+    getCurrentChannel() {
+        const active = document.querySelector('.channel.active');
+        return active ? active.title : 'None';
+    },
+    
+    getPlayerInfo() {
+        return {
+            hasHLS: !!AppState.currentHls,
+            hasShaka: !!AppState.currentShaka,
+            hasVideo: !!AppState.currentVideo,
+            drmSupport: AppState.drmSupport,
+            networkSpeed: AppState.networkSpeed
+        };
     }
+};
+
+Utils.log('💡 Debug API available at window.IPTVPlayer');
