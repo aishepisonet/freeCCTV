@@ -90,8 +90,20 @@ function loadChannel(channel) {
     }
 }
 
+let fallbackAttempts = 0;
+const MAX_FALLBACK_ATTEMPTS = 2;
+
 // ✅ RECOMMENDED: Separate fallback function
 async function handleLoadErrorFallback(channel, error) {
+
+    if (fallbackAttempts >= MAX_FALLBACK_ATTEMPTS) {
+        console.error('Maximum fallback attempts reached');
+        channelName.textContent = `${channel.name} - Unable to load`;
+        return;
+    }
+    
+    fallbackAttempts++;
+
     console.log(`Attempting fallback for ${channel.name} after error:`, error.message);
     
     if (channel.link && channel.link.includes('.mpd')) {
@@ -99,7 +111,14 @@ async function handleLoadErrorFallback(channel, error) {
         
         try {
             // Assuming loadWithShakaPlayer exists for DASH playback
-            await loadWithShakaPlayer(channel.link, channel.license || null);
+            
+            await loadWithShakaPlayer(channel.link, { 
+    clearKeys: channel.clearKeys || {},
+    servers: channel.licenseServer ? { 
+        'com.widevine.alpha': channel.licenseServer 
+    } : {}
+});
+
         } catch (shakaError) {
             console.error('DASH fallback also failed:', shakaError);
             
@@ -114,7 +133,7 @@ async function handleLoadErrorFallback(channel, error) {
             }
         }
     }
-}
+};
 
 async function loadStreamWithSmartDRM(streamData) {
     
@@ -985,7 +1004,7 @@ function destroyCurrent() {
     qualitySelector.style.display = "none";
     qualitySelector.innerHTML = "";
     unmuteBtn.style.display = 'none';
-}
+};
 
 
 function loadYouTube(link) {
@@ -1006,7 +1025,7 @@ function loadYouTube(link) {
     };
 
     videoWrapper.appendChild(iframe);
-}
+};
 
 
 
@@ -1060,7 +1079,7 @@ function loadHls(link) {
         showLoader(false);
         switching = false;
     }
-}
+};
 
 
 
@@ -1234,102 +1253,68 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-    function loadWithShakaPlayer(link, licenseData = null) {
-    if (switching) return;
-    switching = true;
-
-    destroyCurrent();
-    showLoader(true);
-
-    setTimeout(() => switching = false, 500);
-
-    const video = setupVideoElement();
-    videoWrapper.appendChild(video);
-    currentVideo = video;
-
-    // 1. Check Browser Support
+    /**
+ * Fallback player for DASH streams using Shaka Player
+ * @param {string} url - The stream URL (.mpd file)
+ * @param {Object|null} licenseData - Optional DRM license data
+ */
+async function loadWithShakaPlayer(url, licenseData = null) {
+    console.log('🔧 Loading with Shaka Player fallback:', url);
+    
     if (!shaka.Player.isBrowserSupported()) {
-        console.error("Shaka Player: Browser not supported!");
-        showLoader(false);
-        channelName.textContent = `${channelName.textContent} - Browser not supported`;
-        return;
+        throw new Error('Shaka Player is not supported in this browser');
     }
 
-    // 2. Create Player Instance and attach to video element
-    const player = new shaka.Player(video);
-    currentShakaPlayer = player; // Store reference globally to control later
-
-    // 3. Configure Player
-    player.configure({
-        streaming: {
-            bufferingGoal: 30,
-            rebufferingGoal: 2,
-            bufferBehind: 30,
-            lowLatencyMode: false,
-            inaccurateManifestTolerance: 0,
-            retryParameters: {
-                maxAttempts: 5,
-                baseDelay: 1000,
-                backoffFactor: 2,
-                fuzzFactor: 0.5,
-                timeout: 30000
-            }
-        },
-        abr: {
-            enabled: true,
-            defaultBandwidthEstimate: 500000,
-            switchInterval: 2
+    try {
+        // Reuse or create video element
+        const video = currentVideo || setupVideoElement();
+        if (!currentVideo) {
+            videoWrapper.appendChild(video);
+            currentVideo = video;
         }
-    });
 
-    // 4. Set up DRM (ClearKey example)
-    if (licenseData && licenseData.type === "clearkey") {
-        try {
-            const [keyId, keyValue] = licenseData.key.split(':');
+        // Create and configure player
+        const player = new shaka.Player(video);
+        currentShaka = player;
+
+        // Configure DRM if license data provided
+        if (licenseData) {
             player.configure({
                 drm: {
-                    clearKeys: {
-                        [keyId]: keyValue
-                    }
+                    clearKeys: licenseData.clearKeys || {},
+                    servers: licenseData.servers || {}
                 }
             });
-            console.log('Shaka Player: ClearKey DRM configured');
-        } catch (drmError) {
-            console.error('Shaka Player: DRM setup error:', drmError);
         }
+
+        // Basic configuration for stable playback
+        player.configure({
+            streaming: {
+                bufferingGoal: 15,
+                rebufferingGoal: 2,
+                bufferBehind: 25,
+                lowLatencyMode: false,
+                retryParameters: {
+                    maxAttempts: 5,
+                    baseDelay: 1000,
+                    backoffFactor: 2
+                }
+            }
+        });
+
+        // Load and play the stream
+        await player.load(url);
+        console.log('✅ Shaka Player fallback loaded successfully');
+        
+        showLoader(false);
+        await video.play().catch(e => console.log('Autoplay prevented:', e));
+        
+        return player;
+        
+    } catch (error) {
+        console.error('❌ Shaka Player fallback failed:', error);
+        throw error; // Re-throw so handleLoadErrorFallback can continue to HLS fallback
     }
-
-    // 5. Listen to Player Events
-    player.addEventListener('error', (event) => {
-        console.error('Shaka Player: Error event:', event.detail);
-        showLoader(false);
-    });
-
-    player.addEventListener('loading', () => {
-        showLoader(true);
-    });
-
-    player.addEventListener('loaded', () => {
-        console.log("Shaka Player: Manifest loaded.");
-        showLoader(false);
-    });
-
-    player.addEventListener('adaptation', () => {
-        console.log("Shaka Player: Adaptation changed.");
-        // You can update a quality selector UI here if needed
-        populateShakaQualitySelector(player);
-    });
-
-    // 6. Load the Stream
-    console.log("Shaka Player: Loading stream:", link);
-    player.load(link).then(() => {
-        console.log("Shaka Player: Playback started!");
-        showLoader(false);
-        video.play().catch(e => console.log("Autoplay prevented:", e));
-    }).catch((error) => {
-        console.error('Shaka Player: Error loading stream:', error);
-        showLoader(false);
-    });
 }
 
     // ---------------------------
@@ -1360,7 +1345,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 hls.currentLevel = parseInt(this.value);
             }
         };
-    }
+    };
 
 // ---------------------------
 // User Quality Selection
@@ -1443,8 +1428,7 @@ function formatClearKeyKeys(keys) {
         return keys;
     }
     return {};
-}
-
+};
 // Example usage in your DRM configuration:
 //const clearkeyConfig = {
     //servers: {
