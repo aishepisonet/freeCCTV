@@ -151,24 +151,6 @@ async function loadStreamWithSmartDRM(streamData) {
             console.log('ℹ️ No DRM configuration applied - playing without DRM');
         }
 
-        player.configure({
-        drm: {
-        clearKeys: {
-        
-        }
-        }
-    });
-
-        // Basic player configuration
-        player.configure({
-            streaming: {
-                bufferingGoal: 15,
-                rebufferingGoal: 1.5,
-                bufferBehind: 20,
-                lowLatencyMode: false
-            }
-        });
-
         // Load the stream
         await player.load(streamData.link);
         console.log('✅ Stream loaded successfully');
@@ -205,7 +187,7 @@ async function detectDRMSupport() {
         const support = {
             widevine: false,
             clearkey: false,
-            playready: false
+            playready: true
         };
         
         // ✅ FIXED: Add robustness levels to avoid warnings
@@ -495,7 +477,7 @@ function setupCustomTimeDisplay(video, player) {
             ">⛶</button>
         </div>
     `;
-    
+
     const controlsElement = document.createElement('div');
     controlsElement.innerHTML = controlsHTML;
     videoWrapper.appendChild(controlsElement);
@@ -605,7 +587,7 @@ function setupCustomTimeDisplay(video, player) {
     lastUpdateTime = Date.now();
     
     return cleanup;
-}
+};
 
 function setupSimpleLiveDisplay(video) {
     const liveIndicator = document.createElement('div');
@@ -1350,11 +1332,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 }
 
-// Helper to create quality selector (basic example)
-function populateShakaQualitySelector(player) {
-    const tracks = player.getVariantTracks();
-    // ... logic to build UI from tracks array ...
-}
     // ---------------------------
     // Quality selector helpers
     // ---------------------------
@@ -1503,7 +1480,7 @@ function checkAllDRMSupport() {
     });
     
     console.groupEnd();
-}
+};
 
 
 function parseClearKeyData(clearkeyData) {
@@ -1520,7 +1497,7 @@ function parseClearKeyData(clearkeyData) {
         return { ...clearkeyData };
     }
     return {};
-}
+};
 
 
 // ---------------------------
@@ -1568,7 +1545,7 @@ function handleAutoplayRestrictions(video) {
             }, { once: true });
         });
     }
-}
+};
 
 
 function handleDRMFallback(streamData, error) {
@@ -1595,7 +1572,7 @@ function handleDRMFallback(streamData, error) {
     } else {
         channelName.textContent = `${channelName.textContent} - Playback Failed`;
     }
-}
+};
 
 
 // ---------------------------
@@ -1656,7 +1633,7 @@ function checkCodecSupport() {
     });
     
     console.groupEnd();
-}
+};
 
 // Call this in your DOMContentLoaded
 checkCodecSupport();
