@@ -1,4 +1,4 @@
- /* Reset and base */
+/* Reset and base */
     * { box-sizing: border-box; }
     body, html {
       margin: 0; padding: 0; height: 100%;
@@ -141,12 +141,12 @@ video:focus + .custom-time-display,
     transition: opacity 0.3s ease;
 }
 
-/* Fullscreen styles */
+/* Fullscreen styles 
 #videoWrapper:fullscreen {
     width: 100vw;
     height: 100vh;
     background: #000;
-}
+} */
 
 #videoWrapper:fullscreen video {
     width: 100%;
@@ -367,7 +367,7 @@ video:focus {
       user-select: none;
     }
 
-    /* Loader */
+    /* Loader 
     .loader {
       position: absolute;
       left: 50%; top: 50%;
@@ -379,7 +379,8 @@ video:focus {
       animation: spin 1s linear infinite;
       display: none;
       z-index: 5;
-    }
+    } */
+   
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* #unmuteBtn {
@@ -467,7 +468,6 @@ video:focus {
   }
 }
       #channel-name {
-        font-size: 2rem;
+        font-size: 1.5rem;
       }
-    
-
+    }
