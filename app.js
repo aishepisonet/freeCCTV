@@ -443,7 +443,7 @@ const PlayerManager = {
     setupVideoElement() {
         const video = document.createElement("video");
         video.setAttribute("playsinline", "true");
-        video.controls = true;
+        video.controls = false;
         video.autoplay = true;
         video.muted = false;
         video.preload = "auto";
@@ -992,7 +992,7 @@ const ControlsManager = {
     /**
      * Handle fullscreen changes
      */
-    /**handleFullscreenChange() {
+    handleFullscreenChange() {
         if (this.isFullscreen()) {
             this.fullscreenBtn.innerHTML = '⧉';
             this.fullscreenBtn.title = 'Exit Fullscreen (F)';
@@ -1003,9 +1003,7 @@ const ControlsManager = {
             this.hide();
         }
     },
-  */
     
-
     /**
      * Show controls
      */
@@ -1097,7 +1095,7 @@ const ControlsManager = {
             pointer-events: none;
             box-shadow: 0 2px 10px rgba(0,0,0,0.5);
         `;
-    */
+     */   
         liveDiv.textContent = '● LIVE';
         
         DOM.videoWrapper.appendChild(liveDiv);
