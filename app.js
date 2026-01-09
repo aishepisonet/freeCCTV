@@ -74,7 +74,6 @@ function loadChannel(channel) {
         } else if (channel.type === "m3u8") {
             loadHls(channel.link);
         } else if (channel.type === "mpd") {
-            // Use smart DRM loader for MPD files
             console.log(`Loading MPD with smart DRM: ${channel.name}`);
             loadStreamWithSmartDRM(channel);
         } else {
@@ -84,42 +83,38 @@ function loadChannel(channel) {
         console.error('Error loading channel:', error);
         channelName.textContent = `${channel.name} - Error: ${error.message}`;
         showLoader(false);
+        
+        // ✅ FIXED: Fallback logic INSIDE the catch block
+        // Note: You need to pass the channel/streamData to use it here
+        handleLoadErrorFallback(channel, error);
+    }
+}
 
+// ✅ RECOMMENDED: Separate fallback function
+async function handleLoadErrorFallback(channel, error) {
+    console.log(`Attempting fallback for ${channel.name} after error:`, error.message);
     
-    channelName.textContent = `${channelName.textContent} - Shaka Error`;
-    
-    // ✅ IMPROVED: Better fallback logic
-    if (streamData.link.includes('.mpd')) {
+    if (channel.link && channel.link.includes('.mpd')) {
         console.log('🔄 Falling back to DASH.js...');
         
-        // Create a clean stream data object for DASH fallback
-        const shakaStream = {
-            link: streamData.link,
-            license: streamData.license || null
-        };
-        
-        // Use setTimeout to avoid call stack issues
-        setTimeout(() => {
-            try {
-                loadWithShakaPlayer(shakaStream.link, shakaStream.license);
-            } catch (shakaError) {
-                console.error('DASH fallback also failed:', shakaError);
-                // Final fallback to HLS
-                const hlsLink = streamData.link.replace('.mpd', '.m3u8');
-                if (hlsLink !== streamData.link) {
-                    console.log('🔄 Trying HLS fallback...');
-                    loadHls(hlsLink);
-                }
+        try {
+            // Assuming loadWithShakaPlayer exists for DASH playback
+            await loadWithShakaPlayer(channel.link, channel.license || null);
+        } catch (shakaError) {
+            console.error('DASH fallback also failed:', shakaError);
+            
+            // Final fallback to HLS if MPD URL
+            const hlsLink = channel.link.replace('.mpd', '.m3u8');
+            if (hlsLink !== channel.link) {
+                console.log('🔄 Trying HLS fallback...');
+                loadHls(hlsLink);
+            } else {
+                // Show user-friendly error
+                channelName.textContent = `${channel.name} - Failed to load`;
             }
-        }, 100);
-        
+        }
     }
-
 }
-
-}
-
-
 
 async function loadStreamWithSmartDRM(streamData) {
     
@@ -159,35 +154,10 @@ async function loadStreamWithSmartDRM(streamData) {
         player.configure({
         drm: {
         clearKeys: {
-        'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530',
-        '4bbdc78024a54662854b412d01fafa16': '6039ec9b213aca913821677a28bd78ae',
-        '92032b0e41a543fb9830751273b8debd': '03f8b65e2af785b10d6634735dbe6c11',
-        'd273c085f2ab4a248e7bfc375229007d': '7932354c3a84f7fc1b80efa6bcea0615',
-        'a2d1f552ff9541558b3296b5a932136b': 'cdd48fa884dc0c3a3f85aeebca13d444',
-        '900c43f0e02742dd854148b7a75abbec': 'da315cca7f2902b4de23199718ed7e90',
-        'be9caaa813c5305e761c66ac63645901': '3d40f2990ec5362ca5be3a3c9bb8f8b4',
-        '4ab9645a2a0a47edbd65e8479c2b9669': '8cb209f1828431ce9b50b593d1f44079',
-        'd47ebabf7a21430b83a8c4b82d9ef6b1': '54c213b2b5f885f1e0290ee4131d425b',
-        'bd17afb5dc9648a39be79ee3634dd4b8': '3ecf305d54a7729299b93a3d69c02ea5',
-        'c5e51f41ceac48709d0bdcd9c13a4d88': '20b91609967e472c27040716ef6a8b9a',
-        '53c3bf2eba574f639aa21f2d4409ff11': '3de28411cf08a64ea935b9578f6d0edd',
-        '76dc29dd87a244aeab9e8b7c5da1e5f3': '95b2f2ffd4e14073620506213b62ac82',
-        'dcbdaaa6662d4188bdf97f9f0ca5e830': '31e752b441bd2972f2b98a4b1bc1c7a1',
-        '1917f4caf2364e6d9b1507326a85ead6': 'a1340a251a5aa63a9b0ea5d9d7f67595',
-        '0a7ab3612f434335aa6e895016d8cd2d': 'b21654621230ae21714a5cab52daeb9d',
-        '2615129ef2c846a9bbd43a641c7303ef': '07c7f996b1734ea288641a68e1cfdc4d',
-        'eabd2d95c89e42f2b0b0b40ce4179ea0': '0e7e35a07e2c12822316c0dc4873903f',
-        '96701d297d1241e492d41c397631d857': 'ca2931211c1a261f082a3a2c4fd9f91b',
-        'fa3998b9a4de40659725ebc5151250d6': '998f1294b122bbf1a96c1ddc0cbb229f',
-        'e1bde543e8a140b38d3f84ace746553e': 'b712c4ec307300043333a6899a402c10',
-        '2e53f8d8a5e94bca8f9a1e16ce67df33': '3471b2464b5c7b033a03bb8307d9fa35',
-        '4503cf86bca3494ab95a77ed913619a0': 'afc9c8f627fb3fb255dee8e3b0fe1d71',
-        'c24a7811d9ab46b48b746a0e7e269210': 'c321afe1689b07d5b7e55bd025c483ce'
+        
         }
         }
     });
-
-
 
         // Basic player configuration
         player.configure({
