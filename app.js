@@ -84,6 +84,7 @@ function loadChannel(channel) {
         console.error('Error loading channel:', error);
         channelName.textContent = `${channel.name} - Error: ${error.message}`;
         showLoader(false);
+
     
     channelName.textContent = `${channelName.textContent} - Shaka Error`;
     
@@ -118,68 +119,6 @@ function loadChannel(channel) {
 
 }
 
-
-// ---------------------------
-// Enhanced DRM Support Check
-// ---------------------------
-async function checkDRMSupport() {
-    console.log('DRM Support Check:');
-    console.log('MediaSource:', window.MediaSource ? 'Supported' : 'Not Supported');
-    console.log('EME (Encrypted Media Extensions):', navigator.requestMediaKeySystemAccess ? 'Supported' : 'Not Supported');
-    
-    if (navigator.requestMediaKeySystemAccess) {
-        // Check ClearKey support WITH robustness levels
-        navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{
-            initDataTypes: ['keyids', 'cenc'],
-            audioCapabilities: [{ 
-                contentType: 'audio/mp4; codecs="mp4a.40.2"',
-                robustness: 'SW_SECURE_CRYPTO' // Add robustness
-            }],
-            videoCapabilities: [{ 
-                contentType: 'video/mp4; codecs="avc1.42E01E"',
-                robustness: 'SW_SECURE_CRYPTO' // Add robustness
-            }]
-        }]).then(() => {
-            console.log('ClearKey DRM: Supported');
-        }).catch((e) => {
-            console.log('ClearKey DRM: Not Supported', e.message);
-        });
-
-        // Check Widevine support WITH robustness levels
-        navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{
-            initDataTypes: ['cenc'],
-            audioCapabilities: [{ 
-                contentType: 'audio/mp4; codecs="mp4a.40.2"',
-                robustness: 'SW_SECURE_CRYPTO' // Add robustness
-            }],
-            videoCapabilities: [{ 
-                contentType: 'video/mp4; codecs="avc1.42E01E"',
-                robustness: 'SW_SECURE_CRYPTO' // Add robustness
-            }]
-        }]).then(() => {
-            console.log('Widevine DRM: Supported');
-        }).catch((e) => {
-            console.log('Widevine DRM: Not Supported', e.message);
-        });
-
-        // Also check for hardware security if needed
-        navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{
-            initDataTypes: ['cenc'],
-            audioCapabilities: [{ 
-                contentType: 'audio/mp4; codecs="mp4a.40.2"',
-                robustness: 'HW_SECURE_CRYPTO' // Hardware-level security
-            }],
-            videoCapabilities: [{ 
-                contentType: 'video/mp4; codecs="avc1.42E01E"',
-                robustness: 'HW_SECURE_CRYPTO' // Hardware-level security
-            }]
-        }]).then(() => {
-            console.log('Widevine HW_SECURE_CRYPTO: Supported');
-        }).catch(() => {
-            console.log('Widevine HW_SECURE_CRYPTO: Not Supported');
-        });
-    }
-}
 
 
 async function loadStreamWithSmartDRM(streamData) {
@@ -221,7 +160,6 @@ async function loadStreamWithSmartDRM(streamData) {
         drm: {
         clearKeys: {
         'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530',
-        'f703e4c8ec9041eeb5028ab4248fa094': 'c22f2162e176eee6273a5d0b68d19530',
         '4bbdc78024a54662854b412d01fafa16': '6039ec9b213aca913821677a28bd78ae',
         '92032b0e41a543fb9830751273b8debd': '03f8b65e2af785b10d6634735dbe6c11',
         'd273c085f2ab4a248e7bfc375229007d': '7932354c3a84f7fc1b80efa6bcea0615',
@@ -243,7 +181,6 @@ async function loadStreamWithSmartDRM(streamData) {
         'fa3998b9a4de40659725ebc5151250d6': '998f1294b122bbf1a96c1ddc0cbb229f',
         'e1bde543e8a140b38d3f84ace746553e': 'b712c4ec307300043333a6899a402c10',
         '2e53f8d8a5e94bca8f9a1e16ce67df33': '3471b2464b5c7b033a03bb8307d9fa35',
-        'e1bde543e8a140b38d3f84ace746553e': 'b712c4ec307300043333a6899a402c10',
         '4503cf86bca3494ab95a77ed913619a0': 'afc9c8f627fb3fb255dee8e3b0fe1d71',
         'c24a7811d9ab46b48b746a0e7e269210': 'c321afe1689b07d5b7e55bd025c483ce'
         }
@@ -1689,6 +1626,8 @@ function handleDRMFallback(streamData, error) {
         channelName.textContent = `${channelName.textContent} - Playback Failed`;
     }
 }
+
+
 // ---------------------------
 // Initialize when page loads
 // ---------------------------
@@ -1698,9 +1637,10 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('HLS.js available:', typeof Hls !== 'undefined');
     console.log('Shaka Player available:', typeof shaka !== 'undefined');
     
-    checkDRMSupport();
     initializeChannels();
 });
+
+
 // ---------------------------
 // Wait for all resources to load
 // ---------------------------
@@ -1714,12 +1654,14 @@ window.addEventListener('load', function() {
         }, 100);
     }
 });
+
 // Also keep your DOMContentLoaded for faster initial load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM loaded, starting initialization...');
     window.channelsInitialized = true;
     initializeChannels();
 });
+
 
 function checkCodecSupport() {
     console.group('🔍 Codec Support Check');
@@ -1748,3 +1690,6 @@ function checkCodecSupport() {
 
 // Call this in your DOMContentLoaded
 checkCodecSupport();
+
+// Keep all your existing functions (loadHls, loadDash, loadYouTube, etc.) as they are
+// Only the functions above need to be added/modified
