@@ -299,8 +299,6 @@ async function loadChannels() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', loadChannels);
-
 
 
 // =============================================================================
@@ -1342,10 +1340,13 @@ window.addEventListener('load', function() {
     }
 });
 
+document.addEventListener('DOMContentLoaded', loadChannels);
+
+/**
 document.addEventListener('DOMContentLoaded', () => {
   loadChannelsFromGitHub();
 });
-
+*/
 // =============================================================================
 // GLOBAL API (for console debugging)
 // =============================================================================
@@ -1381,6 +1382,7 @@ window.IPTVPlayer = {
 };
 
 Utils.log('💡 Debug API available at window.IPTVPlayer');
+
 
 
 
