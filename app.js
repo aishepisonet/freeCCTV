@@ -245,7 +245,7 @@ const Utils = {
 
 
 const CHANNELS_URL =
-  'https://raw.githubusercontent.com/aishepisonet/iptvcablechannel/refs/heads/main/channels.json';
+  'https://raw.githubusercontent.com/aishepisonet/freeCCTV/refs/heads/main/channels.json';
 
 async function loadChannelsFromGitHub() {
   try {
@@ -1360,3 +1360,4 @@ window.IPTVPlayer = {
 };
 
 Utils.log('💡 Debug API available at window.IPTVPlayer');
+
