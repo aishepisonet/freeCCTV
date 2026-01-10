@@ -7,6 +7,7 @@
 // STATE MANAGEMENT
 // =============================================================================
 
+let channels = [];
 
 const AppState = {
     // Player instances
@@ -280,25 +281,40 @@ async function loadChannelsFromGitHub() {
 }
 */
 
-async function loadChannels() {
+
+async function loadChannelsFromPublic() {
   try {
-    const res = await fetch('./channels.json');
+    Utils.log('📡 Loading channels from /public/channels.json');
+
+    const res = await fetch('./channels.json', { cache: 'no-store' });
 
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
 
-    const channels = await res.json();
-    console.log('Loaded channels:', channels);
+    const data = await res.json();
 
-    ChannelManager.init(channels); // or assign globally
+    if (!Array.isArray(data)) {
+      throw new Error('channels.json is not an array');
+    }
+
+    channels = data; // 🔥 THIS feeds ChannelManager
+
+    Utils.log(`✅ Loaded ${channels.length} channels`);
+
+    ChannelManager.init(); // 🚀 NOW it works
   } catch (err) {
-    console.error('Failed to load channels.json', err);
+    console.error('❌ Failed to load channels.json', err);
+
+    DOM.channelName.textContent = 'Failed to load channels';
+    DOM.channelList.innerHTML = `
+      <div style="color:#ff6b6b; text-align:center; padding:20px;">
+        Failed to load channels.json<br>
+        ${err.message}
+      </div>
+    `;
   }
 }
-
-document.addEventListener('DOMContentLoaded', loadChannels);
-
 
 // =============================================================================
 // CHANNEL MANAGEMENT
@@ -1340,7 +1356,7 @@ window.addEventListener('load', function() {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadChannelsFromGitHub();
+  loadChannelsFromPublic();
 });
 
 // =============================================================================
@@ -1378,6 +1394,7 @@ window.IPTVPlayer = {
 };
 
 Utils.log('💡 Debug API available at window.IPTVPlayer');
+
 
 
 
