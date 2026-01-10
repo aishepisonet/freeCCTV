@@ -347,7 +347,7 @@
     "name": "DreamWorks Tagalized",
     "logo": "https://ownassetsmysky.blob.core.windows.net/assetsmysky/production/plans-and-bundles/1599468004_warner-tv.gif",
     "type": "mpd",
-    "https://qp-pldt-live-grp-07-prod.akamaized.net/out/u/cg_dreamworktag.mpd",
+    "link": "https://qp-pldt-live-grp-07-prod.akamaized.net/out/u/cg_dreamworktag.mpd",
     "drmtype": "clearkey",
     "clearkey": {
       "564b3b1c781043c19242c66e348699c5": "d3ad27d7fe1f14fb1a2cd5688549fbab"
@@ -355,6 +355,7 @@
     "isLive": true
   }
 ]
+
 
 
 
