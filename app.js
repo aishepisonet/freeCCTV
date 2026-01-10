@@ -248,6 +248,8 @@ const Utils = {
 // FETCH MANAGEMENT GitHub JSON fetcher BEFORE ChannelManager.init
 // =============================================================================
 
+let channels = [];
+
 /**const CHANNELS_URL =
   'https://raw.githubusercontent.com/aishepisonet/freeCCTV/refs/heads/main/public/channels.json';
 
@@ -1397,6 +1399,7 @@ window.IPTVPlayer = {
 };
 
 Utils.log('💡 Debug API available at window.IPTVPlayer');
+
 
 
 
