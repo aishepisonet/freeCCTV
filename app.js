@@ -280,8 +280,6 @@ async function loadChannelsFromGitHub() {
 }
 */
 
-let channels = [];
-
 async function loadChannels() {
   try {
     const res = await fetch('./channels.json');
@@ -1380,6 +1378,7 @@ window.IPTVPlayer = {
 };
 
 Utils.log('💡 Debug API available at window.IPTVPlayer');
+
 
 
 
