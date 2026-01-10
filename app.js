@@ -7,7 +7,7 @@
 // STATE MANAGEMENT
 // =============================================================================
 
-let channels = [];
+
 
 const AppState = {
     // Player instances
@@ -243,7 +243,10 @@ const Utils = {
     }
 };
 
-//GitHub JSON fetcher BEFORE ChannelManager.init
+
+// =============================================================================
+// FETCH MANAGEMENT GitHub JSON fetcher BEFORE ChannelManager.init
+// =============================================================================
 
 /**const CHANNELS_URL =
   'https://raw.githubusercontent.com/aishepisonet/freeCCTV/refs/heads/main/public/channels.json';
@@ -1394,6 +1397,7 @@ window.IPTVPlayer = {
 };
 
 Utils.log('💡 Debug API available at window.IPTVPlayer');
+
 
 
 
