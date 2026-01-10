@@ -342,19 +342,9 @@
       "e1bde543e8a140b38d3f84ace746553e": "b712c4ec307300043333a6899a402c10"
     },
     "isLive": true
-  },
-  {
-    "name": "Hits",
-    "logo": "https://ownassetsmysky.blob.core.windows.net/assetsmysky/production/plans-and-bundles/1599468004_warner-tv.gif",
-    "type": "mpd",
-    "link": "https://qp-pldt-live-grp-09-prod.akamaized.net/out/u/cg_hitsnow.mpd",
-    "drmtype": "clearkey",
-    "clearkey": {
-      "14439a1b7afc4527bb0ebc51cf11cbc1": "92b0287c7042f271b266cc11ab7541f1"
-    },
-    "isLive": true
   }
 ]
+
 
 
 
