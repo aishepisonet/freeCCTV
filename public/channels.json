@@ -344,17 +344,18 @@
     "isLive": true
   },
   {
-    "name": "DreamWorks Tagalized",
+    "name": "HBO Family",
     "logo": "https://ownassetsmysky.blob.core.windows.net/assetsmysky/production/plans-and-bundles/1599468004_warner-tv.gif",
     "type": "mpd",
-    "link": "https://qp-pldt-live-grp-07-prod.akamaized.net/out/u/cg_dreamworktag.mpd",
+    "link": "https://qp-pldt-live-grp-03-prod.akamaized.net/out/u/cg_hbofam.mpd",
     "drmtype": "clearkey",
     "clearkey": {
-      "564b3b1c781043c19242c66e348699c5": "d3ad27d7fe1f14fb1a2cd5688549fbab"
+      "872910c843294319800d85f9a0940607": "f79fd895b79c590708cf5e8b5c6263be"
     },
     "isLive": true
   }
 ]
+
 
 
 
