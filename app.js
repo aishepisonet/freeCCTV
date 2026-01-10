@@ -242,9 +242,9 @@ const Utils = {
     }
 };
 
+//GitHub JSON fetcher BEFORE ChannelManager.init
 
-
-const CHANNELS_URL =
+/**const CHANNELS_URL =
   'https://raw.githubusercontent.com/aishepisonet/freeCCTV/refs/heads/main/public/channels.json';
 
 async function loadChannelsFromGitHub() {
@@ -278,7 +278,27 @@ async function loadChannelsFromGitHub() {
     `;
   }
 }
+*/
 
+
+async function loadChannels() {
+  try {
+    const res = await fetch('./channels.json');
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const channels = await res.json();
+    console.log('Loaded channels:', channels);
+
+    ChannelManager.init(channels); // or assign globally
+  } catch (err) {
+    console.error('Failed to load channels.json', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadChannels);
 
 
 
@@ -1360,5 +1380,6 @@ window.IPTVPlayer = {
 };
 
 Utils.log('💡 Debug API available at window.IPTVPlayer');
+
 
 
