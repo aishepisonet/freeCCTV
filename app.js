@@ -1342,7 +1342,7 @@ window.addEventListener('load', function() {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadChannelsFromGitHub();
+  loadChannels();
 });
 
 // =============================================================================
@@ -1380,6 +1380,7 @@ window.IPTVPlayer = {
 };
 
 Utils.log('💡 Debug API available at window.IPTVPlayer');
+
 
 
 
