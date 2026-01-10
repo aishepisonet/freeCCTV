@@ -280,6 +280,7 @@ async function loadChannelsFromGitHub() {
 }
 */
 
+let channels = [];
 
 async function loadChannels() {
   try {
@@ -1380,6 +1381,7 @@ window.IPTVPlayer = {
 };
 
 Utils.log('💡 Debug API available at window.IPTVPlayer');
+
 
 
 
