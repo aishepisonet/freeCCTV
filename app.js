@@ -3,10 +3,10 @@
  * Cleaned and optimized version
  * Supports: YouTube, HLS (m3u8), DASH (mpd) with DRM
  */
-
 // =============================================================================
 // STATE MANAGEMENT
 // =============================================================================
+
 
 const AppState = {
     // Player instances
@@ -241,6 +241,46 @@ const Utils = {
         return states[state] || 'UNKNOWN';
     }
 };
+
+
+
+const CHANNELS_URL =
+  'https://raw.githubusercontent.com/aishepisonet/iptvcablechannel/refs/heads/main/channels.json';
+
+async function loadChannelsFromGitHub() {
+  try {
+    Utils.log('🌐 Fetching channels.json from GitHub...');
+
+    const res = await fetch(CHANNELS_URL, { cache: 'no-store' });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    channels = await res.json();
+
+    if (!Array.isArray(channels)) {
+      throw new Error('channels.json is not an array');
+    }
+
+    Utils.log(`✅ Loaded ${channels.length} channels`);
+
+    ChannelManager.init(); // 🔥 NOW init works
+  } catch (err) {
+    console.error('❌ Channel load failed:', err);
+
+    DOM.channelName.textContent = 'Failed to load channels';
+    DOM.channelList.innerHTML = `
+      <div style="color:#ff6b6b; padding:20px; text-align:center;">
+        Failed to load channels.json<br>
+        ${err.message}
+      </div>
+    `;
+  }
+}
+
+
+
 
 // =============================================================================
 // CHANNEL MANAGEMENT
@@ -1279,6 +1319,10 @@ window.addEventListener('load', function() {
         window.appInitialized = true;
         initApp();
     }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadChannelsFromGitHub();
 });
 
 // =============================================================================
