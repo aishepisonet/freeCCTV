@@ -344,17 +344,18 @@
     "isLive": true
   },
   {
-    "name": "HBO Family",
+    "name": "Hits",
     "logo": "https://ownassetsmysky.blob.core.windows.net/assetsmysky/production/plans-and-bundles/1599468004_warner-tv.gif",
     "type": "mpd",
-    "link": "https://qp-pldt-live-grp-09-prod.akamaized.net/out/u/cg_hbohits.mpd",
+    "link": "https://qp-pldt-live-grp-09-prod.akamaized.net/out/u/cg_hitsnow.mpd",
     "drmtype": "clearkey",
     "clearkey": {
-      "b04ae8017b5b4601a5a0c9060f6d5b7d": "a8795f3bdb8a4778b7e888ee484cc7a1"
+      "14439a1b7afc4527bb0ebc51cf11cbc1": "92b0287c7042f271b266cc11ab7541f1"
     },
     "isLive": true
   }
 ]
+
 
 
 
