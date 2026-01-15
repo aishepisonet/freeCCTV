@@ -574,7 +574,7 @@ const PlayerManager = {
         const video = document.createElement("video");
         video.setAttribute("playsinline", "true");
         video.controls = true;
-        video.autoplay = true;
+        video.autoplay = false;
         video.muted = false;
         video.preload = "auto";
         video.style.width = "100%";
@@ -1438,7 +1438,7 @@ function setupGlobalErrorHandlers() {
         if (DOM.channelName) {
             const currentText = DOM.channelName.textContent;
             if (!currentText.includes('Error')) {
-                DOM.channelName.textContent = `${currentText} - Promise error`;
+                DOM.channelName.textContent = `${currentText} `;
             }
         }
     });
@@ -1453,27 +1453,33 @@ function setupGlobalErrorHandlers() {
 /**
  * Initialize the application DOM and controls only
  */
+let appInitialized = false;
+
 function initApp() {
+    if (appInitialized) return;
+    appInitialized = true;
+
     try {
         Utils.log('🚀 Initializing IPTV Player...');
-        
+
         // Initialize DOM references
         DOM.init();
-        
+
         // Check library availability
         Utils.log('HLS.js available:', typeof Hls !== 'undefined');
         Utils.log('Shaka Player available:', typeof shaka !== 'undefined');
-        
+
         // Initialize controls
         ControlsManager.init();
-        
-        // Setup global error handlers
+
+        // Setup global error handlers ONCE
         setupGlobalErrorHandlers();
-        
-        Utils.log('✅ DOM and controls initialized, waiting for channels...');
-        
-        // NOTE: ChannelManager.init() is called AFTER channels load
-        
+
+        Utils.log('✅ App initialized, loading channels...');
+
+        // Load channels AFTER init
+        loadChannelsFromPublic();
+
     } catch (error) {
         console.error('❌ Failed to initialize app:', error);
         if (DOM.channelName) {
@@ -1482,26 +1488,12 @@ function initApp() {
     }
 }
 
-// Initialize when DOM is ready
+// Initialize when DOM is ready (ONLY ONCE)
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        initApp();
-        loadChannelsFromPublic(); // Load channels after DOM init
-    });
+    document.addEventListener('DOMContentLoaded', initApp, { once: true });
 } else {
     initApp();
-    loadChannelsFromPublic();
 }
-
-// Fallback initialization on full page load
-window.addEventListener('load', function() {
-    if (!window.appInitialized) {
-        Utils.log('📄 Fallback initialization on window.load');
-        window.appInitialized = true;
-        initApp();
-        loadChannelsFromPublic();
-    }
-});
 
 // =============================================================================
 // GLOBAL API (for console debugging)
