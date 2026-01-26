@@ -1,40 +1,45 @@
-
 import crypto from 'crypto';
 
 export default function handler(req, res) {
+  // POST ONLY
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false });
   }
 
-  if (req.headers['x-router-secret'] !== process.env.ROUTER_SECRET) {
+  // ROUTER AUTH
+  const routerSecret = req.headers['x-router-secret'];
+  if (routerSecret !== process.env.ROUTER_SECRET) {
+    return res.status(403).json({ ok: false });
+  }
+
+  // CLIENT IP (JuanFi side)
+  const ip =
+    req.headers['x-forwarded-for']?.split(',')[0] || '';
+
+  // Allow hotspot range only
+  if (!ip.startsWith('10.0.0.')) {
     return res.status(403).json({ ok: false });
   }
 
   const { user, remaining } = req.body;
-
   if (!user || !remaining) {
-    return res.status(400).json({ ok: false, reason: 'Missing user/session' });
+    return res.status(400).json({ ok: false });
   }
 
-  if (!rateLimit(ip)) {
-  return res.status(429).json({ ok: false, reason: 'Rate limited' });
-}
-
-
-  const ip =
-    req.headers['x-forwarded-for']?.split(',')[0] ||
-    req.socket.remoteAddress;
-
+  // Token expiry = remaining session (max 10 hours)
+  const expiryMs = Math.min(remaining * 1000, 10 * 60 * 60 * 1000);
   const ts = Date.now();
 
   const token = crypto
-    .createHmac('sha256', process.env.TOKEN_SECRET)
+    .createHmac('sha256', process.env.ROUTER_SECRET)
     .update(`${user}|${ip}|${ts}`)
     .digest('hex');
 
-  res.redirect(
-    `https://iptvsample.vercel.app/?token=${token}&ts=${ts}&u=${encodeURIComponent(user)}&exp=${remaining}`
-  );
+  const redirect = `https://aishetv.vercel.app/?token=${token}&ts=${ts}&exp=${expiryMs}`;
+
+  // Redirect browser
+  res.writeHead(302, { Location: redirect });
+  res.end();
 }
 
 
