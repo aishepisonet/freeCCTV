@@ -12,7 +12,7 @@ export default function handler(req, res) {
     req.socket.remoteAddress;
 
   const expected = crypto
-    .createHmac('sha256', process.env.TOKEN_SECRET)
+    .createHmac('sha256', process.env.HOTSPOT_SECRET)
     .update(`${u}|${ip}|${ts}`)
     .digest('hex');
 
@@ -27,7 +27,7 @@ export default function handler(req, res) {
   // 🔁 Rotate token
   const newTs = Date.now();
   const newToken = crypto
-    .createHmac('sha256', process.env.TOKEN_SECRET)
+    .createHmac('sha256', process.env.HOTSPOT_SECRET)
     .update(`${u}|${ip}|${newTs}`)
     .digest('hex');
 
@@ -265,6 +265,7 @@ export default function handler(req, res) {
   return res.status(200).json({ ok: true });
 }
 */
+
 
 
 
