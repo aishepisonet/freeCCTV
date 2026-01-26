@@ -146,7 +146,7 @@ video:focus + .custom-time-display,
     width: 100vw;
     height: 100vh;
     background: #000;
-} */
+} 
 
  #videoWrapper:fullscreen video {
     width: 100%;
@@ -476,3 +476,314 @@ video:focus {
         font-size: 1.5rem;
       }
     }
+
+.btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: fit-content;
+  height: fit-content;
+  margin: 20px auto;
+
+  overflow: hidden;
+  cursor: pointer;
+  backdrop-filter: blur(1rem);
+  border-radius: 5rem;
+  transition: 0.5s;
+  animation: gradient_301 5s ease infinite;
+
+  border: double 4px transparent;
+  background-image: linear-gradient(#212121, #212121),
+    linear-gradient(
+      137.48deg,
+      #ffdb3b 10%,
+      #fe53bb 45%,
+      #8f51ea 67%,
+      #0044ff 87%
+    );
+  background-origin: border-box;
+  background-clip: content-box, border-box;
+}
+
+.btn #container-stars {
+  position: absolute;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  transition: 0.5s;
+  backdrop-filter: blur(1rem);
+  border-radius: 5rem;
+}
+
+.btn strong {
+  z-index: 2;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #ffffff;
+  text-shadow: 0 0 4px white;
+}
+
+.btn #glow {
+  position: absolute;
+  display: flex;
+  width: 12rem;
+}
+
+.btn .circle {
+  width: 100%;
+  height: 30px;
+  filter: blur(2rem);
+  animation: pulse_3011 4s infinite;
+  z-index: -1;
+}
+
+.btn .circle:nth-of-type(1) {
+  background: rgba(254, 83, 186, 0.636);
+}
+
+.btn .circle:nth-of-type(2) {
+  background: rgba(142, 81, 234, 0.704);
+}
+
+.btn:hover #container-stars {
+  z-index: 1;
+  background-color: #212121;
+}
+
+.btn:hover {
+  transform: scale(1.05);
+}
+
+.btn:active {
+  border: double 4px #fe53bb;
+  animation: none;
+}
+
+.btn:active .circle {
+  background: #fe53bb;
+}
+
+.btn #stars {
+  position: relative;
+  width: 200rem;
+  height: 200rem;
+}
+
+.btn #stars::after,
+.btn #stars::before {
+  content: "";
+  position: absolute;
+  background-image: radial-gradient(#ffffff 1px, transparent 1%);
+  background-size: 50px 50px;
+}
+
+.btn #stars::after {
+  top: -10rem;
+  left: -100rem;
+  width: 100%;
+  height: 100%;
+  animation: animStarRotate 90s linear infinite;
+}
+
+.btn #stars::before {
+  top: 0;
+  left: -50%;
+  width: 170%;
+  height: 500%;
+  animation: animStar 60s linear infinite;
+  opacity: 0.5;
+}
+
+/* Animations */
+@keyframes animStar {
+  from { transform: translateY(0); }
+  to { transform: translateY(-135rem); }
+}
+
+@keyframes animStarRotate {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0); }
+}
+
+@keyframes gradient_301 {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes pulse_3011 {
+  0% {
+    transform: scale(0.75);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+  }
+  100% {
+    transform: scale(0.75);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+/* Overlay - Full Screen Background */
+#overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+#overlay.show {
+    display: flex;
+}
+
+/* Overlay Content Container */
+#overlayContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    padding: 40px;
+    max-width: 600px;
+    text-align: center;
+}
+
+/* Overlay Text */
+#overlayText {
+    font-size: 1.5rem;
+    color: white;
+    line-height: 1.6;
+}
+
+/* Spinner */
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Reconnect Button - Hidden by default */
+.overlay-reconnect-btn {
+    display: none;
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    z-index: 10000; /* Ensure it's on top */
+}
+
+.overlay-reconnect-btn:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.overlay-reconnect-btn:active {
+    transform: translateY(-1px) scale(1.02);
+}
+
+/* Lock state - prevent interaction with background */
+body.locked {
+    pointer-events: none;
+    user-select: none;
+    overflow: hidden;
+}
+
+body.locked #overlay {
+    pointer-events: auto; /* Overlay is clickable */
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    #overlayContent {
+        padding: 20px;
+    }
+    
+    #overlayText {
+        font-size: 1.2rem;
+    }
+    
+    .overlay-reconnect-btn {
+        padding: 12px 30px;
+        font-size: 1rem;
+        width: 90%;
+        max-width: 300px;
+    }
+}
+
+/* Add to styles.css */
+/*
+#overlay {
+    display: none;
+    position: fixed;
+    top: 170px;
+    left: 10px;
+    width: 95%;
+    height: 62%;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 20px;
+}
+
+#overlay.show {
+    display: flex;
+}
+
+#overlayText {
+    font-size: 1.5rem;
+    text-align: center;
+    padding: 20px;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+body.locked {
+    pointer-events: none;
+    user-select: none;
+    overflow: hidden;
+}
+
+body.locked #overlay {
+    pointer-events: auto;
+}
+*/
