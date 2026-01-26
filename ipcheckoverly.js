@@ -1,4 +1,5 @@
 // validate-client.js
+/*
 document.addEventListener('DOMContentLoaded', () => {
     const overlay = document.getElementById('overlay');
     const overlayText = document.getElementById('overlayText');
@@ -95,11 +96,12 @@ document.addEventListener('visibilitychange', () => {
     validateAccess();
     }
 });
+    */
     
 ////////////////////////////////////////////////////////////////////
 
 // validate-client.js
-/*
+
 document.addEventListener('DOMContentLoaded', () => {
     const overlay = document.getElementById('overlay');
     const overlayText = document.getElementById('overlayText');
@@ -204,4 +206,4 @@ document.addEventListener('DOMContentLoaded', () => {
          });
     }
 });
-*/
+
