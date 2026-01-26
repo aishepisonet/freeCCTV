@@ -99,7 +99,8 @@ setInterval(validateAccess, 5 * 60 * 1000);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     validateAccess();
-  }
+   });
+    }
 });
     
 ////////////////////////////////////////////////////////////////////
