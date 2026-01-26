@@ -35,7 +35,7 @@ export default function handler(req, res) {
     .update(`${user}|${ip}|${ts}`)
     .digest('hex');
 
-  const redirect = `https://aishetv.vercel.app/?token=${token}&ts=${ts}&exp=${expiryMs}`;
+  const redirect = `https://iptvsample.vercel.app/?token=${token}&ts=${ts}&exp=${expiryMs}`;
 
   // Redirect browser
   res.writeHead(302, { Location: redirect });
