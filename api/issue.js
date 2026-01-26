@@ -1,5 +1,48 @@
 
+import crypto from 'crypto';
+
+const SECRET = process.env.TOKEN_SECRET;
+const ROUTER_SECRET = process.env.ROUTER_SECRET;
+
+// 10 HOURS
+const TOKEN_LIFETIME = 10 * 60 * 60 * 1000;
+
+export default function handler(req, res) {
+  // 🔒 POST only
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, reason: 'POST only' });
+  }
+
+  // 🔒 Router secret check
+  const routerSecret = req.headers['x-router-secret'];
+  if (routerSecret !== ROUTER_SECRET) {
+    return res.status(403).json({ ok: false, reason: 'Unauthorized issuer' });
+  }
+
+  // 🌐 Client IP (Vercel-safe)
+  const clientIP =
+    req.headers['x-forwarded-for']?.split(',')[0] ||
+    req.socket.remoteAddress;
+
+  const ts = Date.now();
+
+  // 🔐 Token bound to IP + timestamp
+  const token = crypto
+    .createHmac('sha256', SECRET)
+    .update(`${ts}|${clientIP}`)
+    .digest('hex');
+
+  // 🔁 Redirect to app
+  res.redirect(
+    `https://aishetv.vercel.app/?token=${token}&ts=${ts}`
+  );
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
 // /api/issue.js
+/*
 import crypto from 'crypto';
 
 export default function handler(req, res) {
@@ -276,59 +319,5 @@ function sendErrorHTML(res, { title, message, icon, showRetry = true }) {
   `;
   
   res.status(500).setHeader('Content-Type', 'text/html').send(html);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*
-// /api/issue.js
-
-import crypto from 'crypto';
-
-export default function handler(req, res) {
-    const SECRET = process.env.HOTSPOT_SECRET;
-
-    // Client IP (from hotspot device)
-    const clientIP =
-        req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress;
-
-    // Check if IP is in hotspot range
-   // if (!/^10\.0\.0\.(\d{1,3})$/.test(clientIP)) {
-  //      return res.status(403).json({ ok: false, reason: 'IP not allowed' });
- //   }
-
-    const ts = Date.now();
-    const token = crypto.createHmac('sha256', SECRET)
-                        .update(ts + '|' + clientIP)
-                        .digest('hex');
-
-    // Redirect to app with token
-    const redirectURL = `https://aishetv.vercel.app/?token=${token}&ts=${ts}`;
-    res.redirect(redirectURL);
-}
-*/
-/////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-/**function getClientIP(req) {
-    return (
-        req.headers['x-forwarded-for']?.split(',').shift() ||
-        req.socket?.remoteAddress ||
-        'unknown'
-    );
-}
-
-export default function handler(req, res) {
-    const SECRET = process.env.HOTSPOT_SECRET;
-    const ts = Date.now();
-    const clientIP = getClientIP(req);
-
-    const token = crypto
-        .createHmac('sha256', SECRET)
-        .update(ts + '|' + clientIP)
-        .digest('hex');
-
-    res.redirect(302, `/?token=${token}&ts=${ts}`);
 }
 */
