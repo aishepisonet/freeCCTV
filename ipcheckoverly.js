@@ -1,22 +1,25 @@
-/*
 async function validateAccess() {
   if (locked || validating) return;
   validating = true;
 
   try {
-    const res = await fetch(`/api/validate?token=${token}&ts=${ts}`,
-      { cache: 'no-store' });
+    const res = await fetch(
+      `/api/validate?token=${token}&ts=${ts}`,
+      { cache: 'no-store' }
+    );
 
-    if (!res.ok) {
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
       lockApp('🔒 Session expired. Please reconnect.');
       return;
     }
 
-    const data = await res.json();
-
-    // 🔁 Update rotated token
-    token = data.token;
-    ts = data.ts;
+    // 🔁 Update rotated token (if enabled)
+    if (data.token && data.ts) {
+      token = data.token;
+      ts = data.ts;
+    }
 
     hideOverlay();
 
@@ -30,12 +33,18 @@ async function validateAccess() {
   }
 }
 
-// ⏱️ Check every 5 minutes (safe)
+// ⏱️ Validate every 5 minutes
 setInterval(validateAccess, 5 * 60 * 1000);
-*/
+
+// 📱 Mobile/tab resume fix
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    validateAccess();
+  }
+});
 
 // validate-client.js
-
+/*
 document.addEventListener('DOMContentLoaded', () => {
     const overlay = document.getElementById('overlay');
     const overlayText = document.getElementById('overlayText');
@@ -140,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
          });
     }
 });
-
+*/
 
 ////////////////////////////////////////////////////////////////////
 
