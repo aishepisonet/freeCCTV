@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IPTV Player</title>
+
+  <!-- hls.js for .m3u8 -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- Use a specific version instead of 'latest' -->
+<script src="https://cdn.jsdelivr.net/npm/shaka-player@4.16.12/dist/shaka-player.compiled.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="main-content">
+    <div id="video-container">
+      <div id="channel-name">Loading...</div>
+
+        <div id="videoWrapper">
+         <p style="color: rgb(219, 237, 243); font-size: 40px; margin: 10px 0; text-align: center; margin-top: 240px;">
+    Players injected here</p> 
+        <div class="loader" id="loader"></div>
+        <select id="qualitySelector" aria-label="Quality selector"></select>
+      </div>
+    </div> 
+    
+    <div id="channel-list"></div>
+  </div>
+
+  <button class="btn" onclick="goToPortal()">
+  <div id="container-stars">
+    <div id="stars"></div>
+  </div>
+
+  <strong>⬅ CLICK BACK TO PORTAL</strong>
+
+  <div id="glow">
+    <div class="circle"></div>
+    <div class="circle"></div>
+  </div>
+</button>
+<script>
+function goToPortal() {
+  window.location.replace("http://10.0.0.1/portal.html");
+}  
+</script>
+
+ <!-- ✅ FIXED: Overlay with button INSIDE -->
+  <div id="overlay">
+    <div id="overlayContent">
+      <div id="overlayText">Loading...</div>
+      <div class="spinner"></div>
+      
+      <!-- Button is now INSIDE the overlay -->
+      <button id="overlayButton" class="overlay-reconnect-btn" onclick="goToPortal()">
+        🔄 Click to Reconnect to Portal
+      </button>
+    </div>
+  </div>  
+
+  
+  <footer>
+    <strong>DISCLAIMER:</strong> We do not host any channels. All links are gathered from
+      <a href="https://iptv-org.github.io/" target="_blank" rel="noopener noreferrer">iptv-org</a> and YouTube online streaming.
+  </footer>
+<script>
+    function goToPortal() {
+      // Clear session data
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('ts');
+      // Redirect to portal
+      window.location.replace("http://10.0.0.1/portal.html");
+    }  
+  </script>
+  
+  <script type="module" src="./ipcheckoverly.js"></script>
+  <script type="module" src="./app.js"></script>
+ </body>
+</html>
