@@ -4,10 +4,8 @@ async function validateAccess() {
   validating = true;
 
   try {
-    const res = await fetch(
-      `/api/validate?token=${token}&ts=${ts}`,
-      { cache: 'no-store' }
-    );
+    const res = await fetch(`/api/validate?token=${token}&ts=${ts}`,
+      { cache: 'no-store' });
 
     if (!res.ok) {
       lockApp('🔒 Session expired. Please reconnect.');
