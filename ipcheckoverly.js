@@ -51,16 +51,16 @@ document.addEventListener('DOMContentLoaded', () => {
         ts = sessionStorage.getItem('ts');
     }
 
-      if (!token || !ts) {
-      lockApp('🔒 Please connect to hotspot');
-      validating = false;
-      return;
-   }
-
     // Validate with backend API
    async function validateAccess() {
   if (locked || validating) return;
   validating = true;
+
+         if (!token || !ts) {
+      lockApp('🔒 Please connect to hotspot');
+      validating = false;
+      return;
+   }
 
   try {
     const res = await fetch(`/api/validate?token=${token}&ts=${ts}`,
