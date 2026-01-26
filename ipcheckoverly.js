@@ -1,4 +1,43 @@
+
+async function validateAccess() {
+  if (locked || validating) return;
+  validating = true;
+
+  try {
+    const res = await fetch(
+      `/api/validate?token=${token}&ts=${ts}`,
+      { cache: 'no-store' }
+    );
+
+    if (!res.ok) {
+      lockApp('🔒 Session expired. Please reconnect.');
+      return;
+    }
+
+    const data = await res.json();
+
+    // 🔁 Update rotated token
+    token = data.token;
+    ts = data.ts;
+
+    hideOverlay();
+
+    // 🧼 Clean URL
+    history.replaceState({}, '', location.pathname);
+
+  } catch {
+    lockApp('🔒 Network error');
+  } finally {
+    validating = false;
+  }
+}
+
+// ⏱️ Check every 5 minutes (safe)
+setInterval(validateAccess, 5 * 60 * 1000);
+
+
 // validate-client.js
+/*
 document.addEventListener('DOMContentLoaded', () => {
     const overlay = document.getElementById('overlay');
     const overlayText = document.getElementById('overlayText');
@@ -103,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
          });
     }
 });
+*/
 
 ////////////////////////////////////////////////////////////////////
 
