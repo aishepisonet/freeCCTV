@@ -6,7 +6,7 @@ export default function handler(req, res) {
     return res.status(405).json({ ok: false });
   }
 
-  if (req.headers['x-router-secret'] !== process.env.HOTSPOT_SECRET) {
+  if (req.headers['x-router-secret'] !== process.env.ROUTER_SECRET) {
     return res.status(403).json({ ok: false });
   }
 
@@ -16,6 +16,11 @@ export default function handler(req, res) {
     return res.status(400).json({ ok: false, reason: 'Missing user/session' });
   }
 
+  if (!rateLimit(ip)) {
+  return res.status(429).json({ ok: false, reason: 'Rate limited' });
+}
+
+
   const ip =
     req.headers['x-forwarded-for']?.split(',')[0] ||
     req.socket.remoteAddress;
@@ -23,7 +28,7 @@ export default function handler(req, res) {
   const ts = Date.now();
 
   const token = crypto
-    .createHmac('sha256', process.env.HOTSPOT_SECRET)
+    .createHmac('sha256', process.env.TOKEN_SECRET)
     .update(`${user}|${ip}|${ts}`)
     .digest('hex');
 
