@@ -63,8 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
   validating = true;
 
   try {
-    const res = await fetch(
-      `/api/validate?token=${token}&ts=${ts}`,
+    const res = await fetch(`/api/validate?token=${token}&ts=${ts}`,
       { cache: 'no-store' }
     );
 
