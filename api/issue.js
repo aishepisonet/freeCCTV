@@ -23,7 +23,7 @@ export default function handler(req, res) {
   const ts = Date.now();
 
   const token = crypto
-    .createHmac('sha256', process.env.TOKEN_SECRET)
+    .createHmac('sha256', process.env.HOTSPOT_SECRET)
     .update(`${user}|${ip}|${ts}`)
     .digest('hex');
 
