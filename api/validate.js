@@ -1,5 +1,52 @@
 
-// /api/validate.js
+import crypto from 'crypto';
+
+const SECRET = process.env.TOKEN_SECRET;
+
+// 10 HOURS
+const TOKEN_LIFETIME = 10 * 60 * 60 * 1000;
+
+export default function handler(req, res) {
+  const { token, ts } = req.query;
+
+  if (!token || !ts) {
+    return res.status(403).json({ ok: false, reason: 'Missing token' });
+  }
+
+  const clientIP =
+    req.headers['x-forwarded-for']?.split(',')[0] ||
+    req.socket.remoteAddress;
+
+  const expected = crypto
+    .createHmac('sha256', SECRET)
+    .update(`${ts}|${clientIP}`)
+    .digest('hex');
+
+  // ❌ Invalid token or expired
+  if (
+    expected !== token ||
+    Date.now() - Number(ts) > TOKEN_LIFETIME
+  ) {
+    return res.status(403).json({ ok: false, reason: 'Invalid or expired token' });
+  }
+
+  // 🔄 TOKEN ROTATION (sliding session)
+  const newTs = Date.now();
+  const newToken = crypto
+    .createHmac('sha256', SECRET)
+    .update(`${newTs}|${clientIP}`)
+    .digest('hex');
+
+  return res.json({
+    ok: true,
+    token: newToken,
+    ts: newTs
+  });
+}
+
+
+/////////////////// /api/validate.js////////////////////////////////////////////
+/*
 import crypto from 'crypto';
 
 export default function handler(req, res) {
@@ -76,6 +123,7 @@ export default function handler(req, res) {
     });
   }
 }
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -220,6 +268,7 @@ export default function handler(req, res) {
   return res.status(200).json({ ok: true });
 }
 */
+
 
 
 
