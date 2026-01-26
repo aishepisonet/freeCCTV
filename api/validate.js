@@ -1,48 +1,45 @@
-
 import crypto from 'crypto';
 
-const SECRET = process.env.TOKEN_SECRET;
-
-// 10 HOURS
-const TOKEN_LIFETIME = 10 * 60 * 60 * 1000;
-
 export default function handler(req, res) {
-  const { token, ts } = req.query;
+  const { token, ts, u, exp } = req.query;
 
-  if (!token || !ts) {
-    return res.status(403).json({ ok: false, reason: 'Missing token' });
+  if (!token || !ts || !u || !exp) {
+    return res.status(403).json({ ok: false });
   }
 
-  const clientIP =
+  const ip =
     req.headers['x-forwarded-for']?.split(',')[0] ||
     req.socket.remoteAddress;
 
   const expected = crypto
-    .createHmac('sha256', SECRET)
-    .update(`${ts}|${clientIP}`)
+    .createHmac('sha256', process.env.TOKEN_SECRET)
+    .update(`${u}|${ip}|${ts}`)
     .digest('hex');
 
-  // ❌ Invalid token or expired
-  if (
-    expected !== token ||
-    Date.now() - Number(ts) > TOKEN_LIFETIME
-  ) {
-    return res.status(403).json({ ok: false, reason: 'Invalid or expired token' });
+  const age = Date.now() - Number(ts);
+  const maxAge = Number(exp) * 1000;
+
+  if (expected !== token || age > maxAge) {
+    log('revoke', { u, ip, reason: 'expired' });
+    return res.status(403).json({ ok: false, reason: 'Session expired' });
   }
 
-  // 🔄 TOKEN ROTATION (sliding session)
+  // 🔁 Rotate token
   const newTs = Date.now();
   const newToken = crypto
-    .createHmac('sha256', SECRET)
-    .update(`${newTs}|${clientIP}`)
+    .createHmac('sha256', process.env.TOKEN_SECRET)
+    .update(`${u}|${ip}|${newTs}`)
     .digest('hex');
 
-  return res.json({
+  log('validate', { u, ip });
+
+  res.json({
     ok: true,
     token: newToken,
     ts: newTs
   });
 }
+
 
 
 /////////////////// /api/validate.js////////////////////////////////////////////
@@ -268,6 +265,7 @@ export default function handler(req, res) {
   return res.status(200).json({ ok: true });
 }
 */
+
 
 
 
