@@ -1,40 +1,34 @@
 
 import crypto from 'crypto';
 
-const SECRET = process.env.TOKEN_SECRET;
-const ROUTER_SECRET = process.env.ROUTER_SECRET;
-
-// 10 HOURS
-const TOKEN_LIFETIME = 10 * 60 * 60 * 1000;
-
 export default function handler(req, res) {
-  // 🔒 POST only
   if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, reason: 'POST only' });
+    return res.status(405).json({ ok: false });
   }
 
-  // 🔒 Router secret check
-  const routerSecret = req.headers['x-router-secret'];
-  if (routerSecret !== ROUTER_SECRET) {
-    return res.status(403).json({ ok: false, reason: 'Unauthorized issuer' });
+  if (req.headers['x-router-secret'] !== process.env.ROUTER_SECRET) {
+    return res.status(403).json({ ok: false });
   }
 
-  // 🌐 Client IP (Vercel-safe)
-  const clientIP =
+  const { user, remaining } = req.body;
+
+  if (!user || !remaining) {
+    return res.status(400).json({ ok: false, reason: 'Missing user/session' });
+  }
+
+  const ip =
     req.headers['x-forwarded-for']?.split(',')[0] ||
     req.socket.remoteAddress;
 
   const ts = Date.now();
 
-  // 🔐 Token bound to IP + timestamp
   const token = crypto
-    .createHmac('sha256', SECRET)
-    .update(`${ts}|${clientIP}`)
+    .createHmac('sha256', process.env.TOKEN_SECRET)
+    .update(`${user}|${ip}|${ts}`)
     .digest('hex');
 
-  // 🔁 Redirect to app
   res.redirect(
-    `https://aishetv.vercel.app/?token=${token}&ts=${ts}`
+    `https://aishetv.vercel.app/?token=${token}&ts=${ts}&u=${encodeURIComponent(user)}&exp=${remaining}`
   );
 }
 
