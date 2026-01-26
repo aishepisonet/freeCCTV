@@ -1,4 +1,4 @@
-
+/*
 async function validateAccess() {
   if (locked || validating) return;
   validating = true;
@@ -32,10 +32,10 @@ async function validateAccess() {
 
 // ⏱️ Check every 5 minutes (safe)
 setInterval(validateAccess, 5 * 60 * 1000);
-
+*/
 
 // validate-client.js
-/*
+
 document.addEventListener('DOMContentLoaded', () => {
     const overlay = document.getElementById('overlay');
     const overlayText = document.getElementById('overlayText');
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
          });
     }
 });
-*/
+
 
 ////////////////////////////////////////////////////////////////////
 
