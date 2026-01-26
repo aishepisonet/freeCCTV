@@ -56,12 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (locked || validating) return;
   validating = true;
 
-         if (!token || !ts) {
-      lockApp('🔒 Please connect to hotspot');
-      validating = false;
-      return;
-   }
-
   try {
     const res = await fetch(`/api/validate?token=${token}&ts=${ts}`,
       { cache: 'no-store' }
@@ -99,7 +93,6 @@ setInterval(validateAccess, 5 * 60 * 1000);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     validateAccess();
-   });
     }
 });
     
