@@ -6,7 +6,7 @@ export default function handler(req, res) {
     return res.status(405).json({ ok: false });
   }
 
-  if (req.headers['x-router-secret'] !== process.env.ROUTER_SECRET) {
+  if (req.headers['x-router-secret'] !== process.env.HOTSPOT_SECRET) {
     return res.status(403).json({ ok: false });
   }
 
