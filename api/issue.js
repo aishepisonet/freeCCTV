@@ -28,7 +28,7 @@ export default function handler(req, res) {
     .digest('hex');
 
   res.redirect(
-    `https://aishetv.vercel.app/?token=${token}&ts=${ts}&u=${encodeURIComponent(user)}&exp=${remaining}`
+    `https://iptvsample.vercel.app/?token=${token}&ts=${ts}&u=${encodeURIComponent(user)}&exp=${remaining}`
   );
 }
 
