@@ -12,33 +12,24 @@ export default function handler(req, res) {
     req.socket.remoteAddress;
 
   const expected = crypto
-    .createHmac('sha256', process.env.TOKEN_SECRET)
+    .createHmac('sha256', process.env.ROUTER_SECRET)
     .update(`${u}|${ip}|${ts}`)
     .digest('hex');
 
   const age = Date.now() - Number(ts);
-  const maxAge = Number(exp) * 1000;
+  const maxAge = Number(exp); // ✅ already ms
 
   if (expected !== token || age > maxAge) {
-    log('revoke', { u, ip, reason: 'expired' });
-    return res.status(403).json({ ok: false, reason: 'Session expired' });
+    return res.status(403).json({
+      ok: false,
+      reason: 'Session expired'
+    });
   }
 
-  // 🔁 Rotate token
-  const newTs = Date.now();
-  const newToken = crypto
-    .createHmac('sha256', process.env.TOKEN_SECRET)
-    .update(`${u}|${ip}|${newTs}`)
-    .digest('hex');
-
-  log('validate', { u, ip });
-
-  res.json({
-    ok: true,
-    token: newToken,
-    ts: newTs
-  });
+  // ✅ Valid session
+  res.json({ ok: true });
 }
+
 
 
 
@@ -265,6 +256,7 @@ export default function handler(req, res) {
   return res.status(200).json({ ok: true });
 }
 */
+
 
 
 
