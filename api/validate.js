@@ -6,7 +6,6 @@ export default function handler(req, res) {
   try {
     const { token, ts } = req.query;
     const SECRET = process.env.HOTSPOT_SECRET;
-    const clientIP = "103.167.161.180";
     
     // Check if secret is configured
     if (!SECRET) {
@@ -18,10 +17,10 @@ export default function handler(req, res) {
     }
     
     // Get client IP
-    //const clientIP =
-     // req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
-     // req.socket.remoteAddress ||
-    //  'unknown';
+    const clientIP =
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+      req.socket.remoteAddress ||
+      'unknown';
     
     // Check hotspot IP range (optional)
   //  if (!/^10\.0\.0\.(\d{1,3})$/.test(clientIP)) {
@@ -450,6 +449,7 @@ export default function handler(req, res) {
   return res.status(200).json({ ok: true });
 }
 */
+
 
 
 
