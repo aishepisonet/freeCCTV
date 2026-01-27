@@ -135,14 +135,6 @@ export default function handler(req, res) {
   }
 }
 
-  
-function redirectToApp() {
-  const accessKey = 'your_random_access_key_abc123xyz789'; // Your ISSUE_ACCESS_KEY
-  window.location.href = `https://iptvsample.vercel.app/api/issue?key=${accessKey}`;
-}
-
-
-
 function sendErrorHTML(res, { title, message, icon, showRetry = true, showDebug = null }) {
   const html = `
 <!DOCTYPE html>
@@ -303,8 +295,13 @@ function sendErrorHTML(res, { title, message, icon, showRetry = true, showDebug 
       ${showRetry ? '<button class="btn" onclick="location.reload()">🔄 Try Again</button>' : ''}
       <a href="http://10.0.0.1/portal.html" class="btn btn-secondary">🏠 Back to Portal</a>
     </div>
-      
-    <button onclick="redirectToApp()">Access IPTV</button>
+
+     function redirectToApp() {
+  const accessKey = 'your_random_access_key_abc123xyz789'; // Your ISSUE_ACCESS_KEY
+  window.location.href = `https://iptvsample.vercel.app/api/issue?key=${accessKey}`;
+}
+   <button onclick="redirectToApp()">Access IPTV</button>
+
     ${showDebug ? `<div class="debug-info">Debug: ${showDebug}</div>` : ''}
   </div>
   
