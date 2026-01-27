@@ -26,7 +26,7 @@ export default function handler(req, res) {
     const isHotspotIP = IP_RANGE_PATTERN.test(clientIP);
    // const isYourISP = YOUR_ISP_RANGE.test(clientIP);
     const isWhitelisted = ALLOWED_IPS.includes(clientIP);
-    const isAllowedIP = isHotspotIP || isWhitelisted;
+    const isAllowedIP = isHotspotIP || isYourISP || isWhitelisted;
     
     if (!isAllowedIP) {
       console.warn(`[SECURITY] ❌ Blocked access from unauthorized IP: ${clientIP}`);
