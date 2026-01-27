@@ -50,11 +50,24 @@ function goToPortal() {
     <div id="overlayContent">
       <div id="overlayText">Loading...</div>
       <div class="spinner"></div>
-      
+
+       <button class="btn" onclick="goToPortal()">
+  <div id="container-stars">
+    <div id="stars"></div>
+  </div>
+
+  <strong>⬅ CLICK BACK TO PORTAL</strong>
+
+  <div id="glow">
+    <div class="circle"></div>
+    <div class="circle"></div>
+  </div>
+</button>
       <!-- Button is now INSIDE the overlay -->
-      <button id="overlayButton" class="overlay-reconnect-btn" onclick="goToPortal()">
-        🔄 Click to Reconnect to Portal
-      </button>
+   <!--   <button id="overlayButton" class="overlay-reconnect-btn" onclick="goToPortal()"> -->
+    <!--     🔄 Click to Reconnect to Portal 
+      </button> -->
+      
     </div>
   </div>  
 
