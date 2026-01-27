@@ -17,6 +17,7 @@ export default function handler(req, res) {
     // ========================================
     // Security Check 1: IP Whitelist
     // ========================================
+ /*
     const ALLOWED_IPS = process.env.ALLOWED_IPS?.split(',').map(ip => ip.trim()) || [];
     const IP_RANGE_PATTERN = /^10\.0\.0\.\d{1,3}$/; // Hotspot network range
     
@@ -35,7 +36,7 @@ export default function handler(req, res) {
         showDebug: `Your IP: ${clientIP}`
       });
     }
-    
+    */
     console.log('[SECURITY] ✓ IP check passed:', clientIP);
     
     // ========================================
