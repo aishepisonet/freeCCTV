@@ -154,7 +154,64 @@ document.addEventListener('DOMContentLoaded', () => {
         ts = sessionStorage.getItem('ts');
     }
 
+
+    async function validateAccess(silent = true) {
+    if (locked || validating) return;
+    validating = true;
+
+    // ❌ No token = hard lock
+    if (!token || !ts) {
+        lockApp('🔒 Session expired. Please reconnect to WiFi.', true);
+        validating = false;
+        return;
+    }
+
+    try {
+        // ✅ ONLY show overlay if NOT silent (first load)
+        if (!silent) {
+            showOverlay('Checking access...', false);
+        }
+
+        const res = await fetch(
+            `/api/validate?token=${token}&ts=${ts}`,
+            { cache: 'no-store' }
+        );
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || !data.ok) {
+            throw new Error(data.reason || 'Access denied');
+        }
+
+        // 🔁 Token rotation (if enabled server-side)
+        if (data.token && data.ts) {
+            token = data.token;
+            ts = data.ts;
+            sessionStorage.setItem('token', token);
+            sessionStorage.setItem('ts', ts);
+        }
+
+        // Hide overlay ONLY if it was shown
+        if (!silent) {
+            hideOverlay();
+        }
+
+    } catch (err) {
+        console.error('Validation error:', err);
+
+        // ❌ HARD FAIL → show overlay + lock
+        lockApp(
+            `🔒 ${err.message || 'Session expired. Please reconnect.'}`,
+            true
+        );
+    } finally {
+        validating = false;
+    }
+}
+
+    
     // Validate with backend API
+ /*   
     async function validateAccess() {
         if (locked || validating) return;
         validating = true;
@@ -185,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
             validating = false;
         }
     }
-
+*/
     // Run validation
     showOverlay('Loading app...', false);
     validateAccess();
