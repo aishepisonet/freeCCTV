@@ -244,8 +244,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 */
     // Run validation
-    showOverlay('Loading app...', false);
-    validateAccess();
+//    showOverlay('Loading app...', false);
+ //   validateAccess();
 
     // Recheck every 60 seconds
     setInterval(validateAccess, 60000);
