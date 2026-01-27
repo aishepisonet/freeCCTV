@@ -21,6 +21,8 @@ export default function handler(req, res) {
     const ALLOWED_IPS = process.env.ALLOWED_IPS?.split(',').map(ip => ip.trim()) || [];
     const IP_RANGE_PATTERN = /^10\.0\.0\.\d{1,3}$/; // Hotspot network range
   //  const YOUR_ISP_RANGE = /^103\.167\.161\.\d{1,3}$/; // Your ISP range
+      const YOUR_ISP_RANGE = /^192\.168\.123\.\d{1,3}$/; // Your ISP range
+    
     
     // Allow hotspot network IPs OR specific whitelisted IPs
     const isHotspotIP = IP_RANGE_PATTERN.test(clientIP);
