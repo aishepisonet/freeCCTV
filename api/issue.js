@@ -117,7 +117,7 @@ export default function handler(req, res) {
       .update(ts + '|' + clientIP)
       .digest('hex');
     
-    const redirectURL = `https://aishetv.vercel.app/?token=${token}&ts=${ts}`;
+    const redirectURL = `https://iptvsample.vercel.app/?token=${token}&ts=${ts}`;
     
     console.log('[SUCCESS] ✓ Token generated, redirecting to app');
     
@@ -351,7 +351,7 @@ export default function handler(req, res) {
       .digest('hex');
     
     // Redirect to app with token
-    const redirectURL = `https://aishetv.vercel.app/?token=${token}&ts=${ts}`;
+    const redirectURL = `https://iptvsample.vercel.app/?token=${token}&ts=${ts}`;
     
     console.log('Redirecting to:', redirectURL);
     
