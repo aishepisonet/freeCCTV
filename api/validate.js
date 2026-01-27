@@ -6,6 +6,7 @@ export default function handler(req, res) {
   try {
     const { token, ts } = req.query;
     const SECRET = process.env.HOTSPOT_SECRET;
+    const clientIP = "103.167.161.180";
     
     // Check if secret is configured
     if (!SECRET) {
@@ -449,6 +450,7 @@ export default function handler(req, res) {
   return res.status(200).json({ ok: true });
 }
 */
+
 
 
 
