@@ -108,7 +108,6 @@ export default function handler(req, res) {
     }
     
     const ts = Date.now();
-    const clientIP = "103.167.161.180";
     const token = crypto
       .createHmac('sha256', SECRET)
       .update(ts + '|' + clientIP)
