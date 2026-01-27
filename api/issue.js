@@ -298,6 +298,15 @@ function sendErrorHTML(res, { title, message, icon, showRetry = true, showDebug 
     
     ${showDebug ? `<div class="debug-info">Debug: ${showDebug}</div>` : ''}
   </div>
+
+  <script>
+function redirectToApp() {
+  const accessKey = 'your_random_access_key_abc123xyz789'; // Your ISSUE_ACCESS_KEY
+  window.location.href = `https://aishetv.vercel.app/api/issue?key=${accessKey}`;
+}
+</script>
+
+<button onclick="redirectToApp()">Access IPTV</button>
 </body>
 </html>
   `;
