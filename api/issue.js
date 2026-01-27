@@ -15,7 +15,7 @@ export default function handler(req, res) {
     console.log('[INFO] Access attempt from IP:', clientIP);
     
     // ========================================
-    // Security Check 1: IP Whitelist
+    // Security Check 1: IP Whitelist ISP ip 103.167.161.176
     // ========================================
  
     const ALLOWED_IPS = process.env.ALLOWED_IPS?.split(',').map(ip => ip.trim()) || [];
@@ -26,7 +26,7 @@ export default function handler(req, res) {
     
     // Allow hotspot network IPs OR specific whitelisted IPs
     const isHotspotIP = IP_RANGE_PATTERN.test(clientIP);
-   // const isYourISP = YOUR_ISP_RANGE.test(clientIP);
+    const isYourISP = YOUR_ISP_RANGE.test(clientIP);
     const isWhitelisted = ALLOWED_IPS.includes(clientIP);
     const isAllowedIP = isHotspotIP || isYourISP || isWhitelisted;
     
