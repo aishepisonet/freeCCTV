@@ -138,7 +138,7 @@ export default function handler(req, res) {
   
 function redirectToApp() {
   const accessKey = 'your_random_access_key_abc123xyz789'; // Your ISSUE_ACCESS_KEY
-  window.location.href = `https://aishetv.vercel.app/api/issue?key=${accessKey}`;
+  window.location.href = `https://iptvsample.vercel.app/api/issue?key=${accessKey}`;
 }
 
 
