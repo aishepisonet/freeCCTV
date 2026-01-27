@@ -296,12 +296,6 @@ function sendErrorHTML(res, { title, message, icon, showRetry = true, showDebug 
       <a href="http://10.0.0.1/portal.html" class="btn btn-secondary">🏠 Back to Portal</a>
     </div>
 
-     function redirectToApp() {
-  const accessKey = 'your_random_access_key_abc123xyz789'; // Your ISSUE_ACCESS_KEY
-  window.location.href = `https://iptvsample.vercel.app/api/issue?key=${accessKey}`;
-}
-   <button onclick="redirectToApp()">Access IPTV</button>
-
     ${showDebug ? `<div class="debug-info">Debug: ${showDebug}</div>` : ''}
   </div>
   
