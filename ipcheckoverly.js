@@ -1,18 +1,17 @@
 // validate-client.js
-/*
 document.addEventListener('DOMContentLoaded', () => {
     const overlay = document.getElementById('overlay');
     const overlayText = document.getElementById('overlayText');
     const overlayButton = document.getElementById('overlayButton');
-
+    
     if (!overlay || !overlayText) {
         console.error('Overlay elements missing!');
         return;
     }
-
+    
     let locked = false;
     let validating = false;
-
+    
     function showOverlay(text, showButton = false) {
         overlayText.textContent = text;
         overlay.classList.add('show');
@@ -21,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
             overlayButton.style.display = showButton ? 'block' : 'none';
         }
     }
-
+    
     function hideOverlay(delay = 800) {
         setTimeout(() => {
             overlay.classList.remove('show');
@@ -30,78 +29,89 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, delay);
     }
-
+    
     function lockApp(msg = '🔒 Access restricted', showReconnectButton = true) {
         if (locked) return;
         locked = true;
         showOverlay(msg, showReconnectButton);
         document.body.classList.add('locked');
     }
-
-    // Get token from URL or sessionStorage
+    
+    // Get access key from URL or sessionStorage
     const params = new URLSearchParams(window.location.search);
-    let token = params.get('token');
-    let ts = params.get('ts');
-
-    if (token && ts) {
-        sessionStorage.setItem('token', token);
-        sessionStorage.setItem('ts', ts);
+    let accessKey = params.get('key');
+    
+    if (accessKey) {
+        sessionStorage.setItem('accessKey', accessKey);
+        // Clean URL without reloading
         history.replaceState({}, '', location.pathname);
     } else {
-        token = sessionStorage.getItem('token');
-        ts = sessionStorage.getItem('ts');
+        accessKey = sessionStorage.getItem('accessKey');
     }
-
-    // Validate with backend API
-   async function validateAccess() {
-  if (locked || validating) return;
-  validating = true;
-
-  try {
-    const res = await fetch(`/api/validate?token=${token}&ts=${ts}`,
-      { cache: 'no-store' }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok || !data.ok) {
-      lockApp('🔒 Session expired. Please reconnect.');
-      return;
+    
+    async function validateAccess(silent = true) {
+        if (locked || validating) return;
+        validating = true;
+        
+        // ❌ No access key = hard lock
+        if (!accessKey) {
+            lockApp('🔒 Access denied. Authentication required.', false);
+            validating = false;
+            return;
+        }
+        
+        try {
+            // ✅ ONLY show overlay if NOT silent (first load)
+            if (!silent) {
+                showOverlay('Checking access...', false);
+            }
+            
+            const res = await fetch(
+                `/api/validate?key=${accessKey}`,
+                { cache: 'no-store' }
+            );
+            
+            const data = await res.json().catch(() => ({}));
+            
+            if (!res.ok || !data.ok) {
+                throw new Error(data.reason || 'Access denied');
+            }
+            
+            // Hide overlay ONLY if it was shown
+            if (!silent) {
+                hideOverlay();
+            }
+            
+        } catch (err) {
+            console.error('Validation error:', err);
+            // ❌ HARD FAIL → show overlay + lock
+            lockApp(
+                `🔒 ${err.message || 'Access denied. Please check your credentials.'}`,
+                false
+            );
+        } finally {
+            validating = false;
+        }
     }
-
-    // 🔁 Update rotated token (if enabled)
-    if (data.token && data.ts) {
-      token = data.token;
-      ts = data.ts;
-    }
-
-    hideOverlay();
-
-    // 🧼 Clean URL
-    history.replaceState({}, '', location.pathname);
-
-  } catch {
-    lockApp('🔒 Network error');
-  } finally {
-    validating = false;
-  }
-}
-
-// ⏱️ Validate every 5 minutes
-setInterval(validateAccess, 5 * 60 * 1000);
-
-// 📱 Mobile/tab resume fix
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) {
-    validateAccess();
+    
+    // Initial validation (silent)
+    validateAccess(true);
+    
+    // Periodic validation every 5 minutes
+    setInterval(() => validateAccess(true), 5 * 60 * 1000);
+    
+    // Reconnect button handler (if you have one)
+    if (overlayButton) {
+        overlayButton.addEventListener('click', () => {
+            window.location.href = '/api/issue?key=' + (accessKey || '');
+        });
     }
 });
-    */
     
 ////////////////////////////////////////////////////////////////////
 
 // validate-client.js
-
+/*
 document.addEventListener('DOMContentLoaded', () => {
     const overlay = document.getElementById('overlay');
     const overlayText = document.getElementById('overlayText');
@@ -244,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 */
     // Run validation
+/*
     showOverlay('Loading app...', false);
     validateAccess(false);
 
@@ -263,4 +274,4 @@ document.addEventListener('DOMContentLoaded', () => {
          });
     }
 });
-
+*/
