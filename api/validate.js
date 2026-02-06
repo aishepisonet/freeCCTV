@@ -1,5 +1,76 @@
 
+export default function handler(req, res) {
+  try {
+    // Get client IP
+    const clientIP =
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+      req.socket.remoteAddress ||
+      'unknown';
+    
+    console.log('[INFO] Validation check from IP:', clientIP);
+    
+    // ========================================
+    // Security Check 1: IP Whitelist
+    // ========================================
+    const ALLOWED_IPS = process.env.ALLOWED_IPS?.split(',').map(ip => ip.trim()) || [];
+    const YOUR_ISP_RANGE = /^103\.167\.161\.\d{1,3}$/; // Your ISP range
+    
+    const isYourISP = YOUR_ISP_RANGE.test(clientIP);
+    const isWhitelisted = ALLOWED_IPS.includes(clientIP);
+    const isAllowedIP = isYourISP || isWhitelisted;
+    
+    if (!isAllowedIP) {
+      console.warn(`[SECURITY] ❌ Blocked validation from unauthorized IP: ${clientIP}`);
+      return res.status(403).json({ 
+        ok: false, 
+        reason: 'IP not allowed' 
+      });
+    }
+    
+    console.log('[SECURITY] ✓ IP check passed:', clientIP);
+    
+    // ========================================
+    // Security Check 2: Access Key
+    // ========================================
+    const accessKey = req.query.key;
+    const ISSUE_ACCESS_KEY = process.env.ISSUE_ACCESS_KEY;
+    
+    if (!ISSUE_ACCESS_KEY) {
+      console.error('[CONFIG] ⚠️ ISSUE_ACCESS_KEY not configured');
+    }
+    
+    if (ISSUE_ACCESS_KEY && (!accessKey || accessKey !== ISSUE_ACCESS_KEY)) {
+      console.warn(`[SECURITY] 🔐 Invalid or missing access key from IP: ${clientIP}`);
+      return res.status(403).json({ 
+        ok: false, 
+        reason: 'Invalid or missing access key' 
+      });
+    }
+    
+    console.log('[SECURITY] ✓ Access key verified');
+    
+    // ========================================
+    // Success Response
+    // ========================================
+    return res.status(200).json({ 
+      ok: true,
+      message: 'Access granted',
+      timestamp: Date.now()
+    });
+    
+  } catch (error) {
+    console.error('[ERROR] Validation error:', error);
+    return res.status(500).json({ 
+      ok: false, 
+      reason: 'Internal server error' 
+    });
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 // /api/validate.js
+/*
 import crypto from 'crypto';
 
 export default function handler(req, res) {
@@ -76,6 +147,7 @@ export default function handler(req, res) {
     });
   }
 }
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -449,6 +521,7 @@ export default function handler(req, res) {
   return res.status(200).json({ ok: true });
 }
 */
+
 
 
 
