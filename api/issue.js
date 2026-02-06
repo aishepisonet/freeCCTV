@@ -16,6 +16,7 @@ export default function handler(req, res) {
  
     const ALLOWED_IPS = process.env.ALLOWED_IPS?.split(',').map(ip => ip.trim()) || [];
     const YOUR_ISP_RANGE = /^103\.167\.161\.\d{1,3}$/; // Your ISP range
+    const YOUR_ISP_RANGE = /^158\.62\.57\.\d{1,3}$/; // Your ISP range
     
     const isYourISP = YOUR_ISP_RANGE.test(clientIP);
     const isWhitelisted = ALLOWED_IPS.includes(clientIP);
