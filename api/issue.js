@@ -348,7 +348,8 @@ export default function handler(req, res) {
       .update(ts + '|' + clientIP)
       .digest('hex');
     
-    const redirectURL = `https://iptvsample.vercel.app/?token=${token}&ts=${ts}`;
+    //const redirectURL = `https://iptvsample.vercel.app/?token=${token}&ts=${ts}`;
+    const redirectURL = `https://iptvsample.vercel.app/?token=a94663437afaf47a079f27d364df4560947c03e3b0c50c5394eb47b2552eb5ed`;
     
     console.log('[SUCCESS] ✓ Token generated, redirecting to app');
     
