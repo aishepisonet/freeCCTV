@@ -1,5 +1,3 @@
-
-
 import crypto from 'crypto';
 
 export default function handler(req, res) {
@@ -60,9 +58,9 @@ export default function handler(req, res) {
     console.log('[SECURITY] ✓ Access key verified');
     
     // ========================================
-    // Success - Redirect to App
+    // Success - Redirect to App WITH KEY
     // ========================================
-    const redirectURL = `https://iptvsample.vercel.app/`;
+    const redirectURL = `https://iptvsample.vercel.app/?key=${accessKey}`;
     
     console.log('[SUCCESS] ✓ Security checks passed, redirecting to app');
     
