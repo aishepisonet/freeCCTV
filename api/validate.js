@@ -14,6 +14,8 @@ export default function handler(req, res) {
     // ========================================
     const ALLOWED_IPS = process.env.ALLOWED_IPS?.split(',').map(ip => ip.trim()) || [];
     const YOUR_ISP_RANGE = /^103\.167\.161\.\d{1,3}$/; // Your ISP range
+    const YOUR_ISP_RANGE0 = /^103\.167\.160\.\d{1,3}$/; // Your ISP range Cebu Cable Ip address @ Aishepisonet
+    //const YOUR_ISP_RANGE1 = /^158\.62\.57\.\d{1,3}$/; // Your ISP range Jessie Manipis Ip address
     
     const isYourISP = YOUR_ISP_RANGE.test(clientIP);
     const isWhitelisted = ALLOWED_IPS.includes(clientIP);
@@ -521,6 +523,7 @@ export default function handler(req, res) {
   return res.status(200).json({ ok: true });
 }
 */
+
 
 
 
