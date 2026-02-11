@@ -62,7 +62,7 @@ export default function handler(req, res) {
     // ========================================
     // Success - Redirect to App WITH KEY
     // ========================================
-    const redirectURL = `https://aishetv.vercel.app/?key=${accessKey}`;
+    const redirectURL = `https://iptvsample.vercel.app/?key=${accessKey}`;
     
     console.log('[SUCCESS] ✓ Security checks passed, redirecting to app');
     
