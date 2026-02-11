@@ -1,4 +1,76 @@
+export default function handler(req, res) {
+  try {
+    // Get client IP
+    const clientIP =
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+      req.socket.remoteAddress ||
+      'unknown';
+    
+    console.log('[INFO] Validation check from IP:', clientIP);
+    
+    // ========================================
+    // Security Check 1: IP Whitelist
+    // ========================================
+    const ALLOWED_IPS = process.env.ALLOWED_IPS?.split(',').map(ip => ip.trim()) || [];
+    const YOUR_ISP_RANGE = /^103\.167\.16[01]\.\d{1,3}$/; // Covers both 160.x and 161.x
+    const YOUR_ISP_RANGE1 = /^158\.62\.57\.\d{1,3}$/; // Your ISP range Jessie Manipis Ip address
+    //const YOUR_ISP_RANGE = /^103\.167\.160\.\d{1,3}$/; // Your ISP range Cebu Cable Ip address @ Aishepisonet
+    
+    const isYourISP = YOUR_ISP_RANGE.test(clientIP);
+    const isWhitelisted = ALLOWED_IPS.includes(clientIP);
+    const isAllowedIP = isYourISP || isWhitelisted;
+    
+    if (!isAllowedIP) {
+      console.warn(`[SECURITY] ❌ Blocked validation from unauthorized IP: ${clientIP}`); // Fixed: backtick instead of template literal
+      return res.status(403).json({ 
+        ok: false, 
+        reason: 'IP not allowed' 
+      });
+    }
+    
+    console.log('[SECURITY] ✓ IP check passed:', clientIP);
+    
+    // ========================================
+    // Security Check 2: Access Key
+    // ========================================
+    const accessKey = req.query.key;
+    const ISSUE_ACCESS_KEYS = process.env.ISSUE_ACCESS_KEYS;
+    
+    if (!ISSUE_ACCESS_KEYS) {
+      console.error('[CONFIG] ⚠️ ISSUE_ACCESS_KEYS not configured');
+    }
+    
+    if (ISSUE_ACCESS_KEYS && (!accessKey || accessKey !== ISSUE_ACCESS_KEYS)) { // Fixed: removed extra parenthesis
+      console.warn(`[SECURITY] 🔐 Invalid or missing access key from IP: ${clientIP}`); // Fixed: backtick instead of template literal
+      return res.status(403).json({ 
+        ok: false, 
+        reason: 'Invalid or missing access key' 
+      });
+    }
+    
+    console.log('[SECURITY] ✓ Access key verified');
+    
+    // ========================================
+    // Success Response
+    // ========================================
+    return res.status(200).json({ 
+      ok: true,
+      message: 'Access granted',
+      timestamp: Date.now()
+    });
+    
+  } catch (error) {
+    console.error('[ERROR] Validation error:', error);
+    return res.status(500).json({ 
+      ok: false, 
+      reason: 'Internal server error' 
+    });
+  }
+}
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
 export default function handler(req, res) {
   try {
     // Get client IP
@@ -69,6 +141,8 @@ export default function handler(req, res) {
     });
   }
 }
+
+*/
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -524,6 +598,7 @@ export default function handler(req, res) {
   return res.status(200).json({ ok: true });
 }
 */
+
 
 
 
